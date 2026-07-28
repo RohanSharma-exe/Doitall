@@ -1,0 +1,172 @@
+from unittest.mock import Mock
+
+from doitall.knowledge.document import Document
+from doitall.knowledge.simple_chunker import SimpleChunker
+from doitall.knowledge.vector_repository import VectorKnowledgeRepository
+from doitall.serialization.chunk_serializer import ChunkSerializer
+
+
+def test_add_document():
+    chunker = Mock()
+    embedding_manager = Mock()
+    vector_store = Mock()
+
+    chunk = Mock()
+    chunk.id = "chunk-1"
+    chunk.document_id = "doc-1"
+    chunk.text = "hello"
+    chunk.chunk_index = 0
+    chunk.metadata = {}
+
+    chunker.chunk.return_value = [chunk]
+
+    embedding_manager.embed.return_value = [0.1, 0.2]
+
+    repository = VectorKnowledgeRepository(
+        chunker=chunker,
+        embedding_manager=embedding_manager,
+        vector_store=vector_store,
+    )
+
+    repository.add(Document(id="doc-1", content="hello"))
+
+    vector_store.upsert.assert_called_once_with(
+        point_id="chunk-1",
+        vector=[0.1, 0.2],
+        payload=ChunkSerializer.to_payload(chunk),
+    )
+
+
+def test_repository_creation():
+    repository = VectorKnowledgeRepository(
+        chunker=SimpleChunker(),
+        embedding_manager=Mock(),
+        vector_store=Mock(),
+    )
+
+    assert repository is not None
+
+
+def test_repository_count():
+    vector_store = Mock()
+    vector_store.count.return_value = 10
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    assert repository.count() == 10
+
+    vector_store.count.assert_called_once()
+
+
+def test_count():
+    vector_store = Mock()
+    vector_store.count.return_value = 42
+
+    repository = VectorKnowledgeRepository(
+        chunker=SimpleChunker(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    assert repository.count() == 42
+
+
+def test_clear():
+    vector_store = Mock()
+
+    repository = VectorKnowledgeRepository(
+        chunker=SimpleChunker(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    repository.clear()
+
+    vector_store.clear.assert_called_once()
+
+
+def test_search():
+    chunker = Mock()
+    embedding_manager = Mock()
+    vector_store = Mock()
+
+    embedding_manager.embed.return_value = [1.0]
+
+    vector_store.search.return_value = [
+        {
+            "payload": {
+                "document_id": "doc1",
+                "text": "Hello World",
+                "metadata": {},
+            }
+        }
+    ]
+
+    repository = VectorKnowledgeRepository(
+        chunker=chunker,
+        embedding_manager=embedding_manager,
+        vector_store=vector_store,
+    )
+
+    results = repository.search("hello")
+
+    assert len(results) == 1
+    assert results[0].id == "doc1"
+    assert results[0].content == "Hello World"
+
+
+def test_add_multiple_chunks():
+    chunker = Mock()
+    embedding_manager = Mock()
+    vector_store = Mock()
+
+    chunk1 = Mock()
+    chunk1.id = "1"
+    chunk1.document_id = "doc"
+    chunk1.text = "first"
+    chunk1.chunk_index = 0
+    chunk1.metadata = {}
+
+    chunk2 = Mock()
+    chunk2.id = "2"
+    chunk2.document_id = "doc"
+    chunk2.text = "second"
+    chunk2.chunk_index = 1
+    chunk2.metadata = {}
+
+    chunker.chunk.return_value = [chunk1, chunk2]
+
+    embedding_manager.embed.side_effect = [
+        [0.1],
+        [0.2],
+    ]
+
+    repository = VectorKnowledgeRepository(
+        chunker=chunker,
+        embedding_manager=embedding_manager,
+        vector_store=vector_store,
+    )
+
+    repository.add(Document(content="hello"))
+
+    assert vector_store.upsert.call_count == 2
+
+
+def test_search_returns_empty():
+    embedding_manager = Mock()
+    vector_store = Mock()
+
+    embedding_manager.embed.return_value = [1.0]
+    vector_store.search.return_value = []
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=embedding_manager,
+        vector_store=vector_store,
+    )
+
+    assert repository.search("hello") == []

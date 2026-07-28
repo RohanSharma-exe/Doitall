@@ -1,0 +1,28 @@
+from abc import ABC, abstractmethod
+
+from doitall.knowledge.document import Document
+
+
+class KnowledgeRepository(ABC):
+    @abstractmethod
+    def add(
+        self,
+        document: Document,
+    ) -> None:
+        """Index a document."""
+
+    @abstractmethod
+    def search(
+        self,
+        query: str,
+        limit: int = 5,
+    ) -> list[Document]:
+        """Semantic search."""
+
+    @abstractmethod
+    def clear(self) -> None:
+        """Delete indexed documents."""
+
+    @abstractmethod
+    def count(self) -> int:
+        """Number of indexed chunks."""
