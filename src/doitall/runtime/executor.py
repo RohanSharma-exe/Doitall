@@ -5,6 +5,8 @@ from doitall.runtime.prompt_builder import PromptBuilder
 
 
 class RuntimeExecutor:
+    """Executes a single request against the configured provider."""
+
     def __init__(
         self,
         prompt_builder: PromptBuilder,
@@ -35,4 +37,4 @@ class RuntimeExecutor:
             for message in messages
         ]
 
-        return await provider.chat(payload)
+        return await provider.chat(payload, tools=context.tools)

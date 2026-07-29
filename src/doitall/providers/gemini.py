@@ -1,8 +1,10 @@
+import json
 from typing import Any
 
 from doitall.config.settings import settings
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall
+from doitall.models.tool_definition import ToolDefinition
 from doitall.providers.base import BaseProvider
 from doitall.providers.client import LiteLLMClient
 
@@ -17,19 +19,30 @@ class GeminiProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ) -> ProviderResponse:
+        tools = kwargs.pop("tools", [])
+
+        if tools:
+            kwargs["tools"] = self._convert_tools(tools)
+
         response = await self.client.chat(
             model=settings.GEMINI_MODEL,
             messages=messages,
             **kwargs,
         )
 
-        message = response.choices[0].message
+        return self._to_provider_response(response)
 
-        tool_calls: list[ToolCall] = []
+    def _to_provider_response(
+        self,
+        response: Any,
+    ) -> ProviderResponse:
+        """Convert a LiteLLM response into Doitall's normalized response."""
+
+        message = response.choices[0].message
 
         return ProviderResponse(
             content=message.content or "",
-            tool_calls=tool_calls,
+            tool_calls=self._parse_tool_calls(message),
             finish_reason=response.choices[0].finish_reason,
             model=response.model,
         )
@@ -43,3 +56,36 @@ class GeminiProvider(BaseProvider):
 
     async def health_check(self) -> bool:
         return True
+
+    def _convert_tools(
+        self,
+        tools: list[ToolDefinition],
+    ) -> list[dict]:
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.input_schema,
+                },
+            }
+            for tool in tools
+        ]
+
+    def _parse_tool_calls(
+        self,
+        message: Any,
+    ) -> list[ToolCall]:
+        tool_calls: list[ToolCall] = []
+
+        for call in getattr(message, "tool_calls", []) or []:
+            tool_calls.append(
+                ToolCall(
+                    id=call.id,
+                    name=call.function.name,
+                    arguments=json.loads(call.function.arguments),
+                )
+            )
+
+        return tool_calls
