@@ -1,3 +1,4 @@
+from doitall.core.exceptions import ProviderError, ValidationError
 from doitall.memory.store import MemoryStore
 from doitall.models.memory import Memory
 
@@ -9,18 +10,24 @@ class MemoryManager:
     ) -> None:
         self._store = store
 
-    def add(
+    async def add(
         self,
         memory: Memory,
     ) -> None:
-        self._store.add(memory)
+        if not memory or not memory.content or not memory.content.strip():
+            raise ValidationError("Memory content cannot be empty")
 
-    def all(
+        await self._store.add(memory)
+
+    async def all(
         self,
     ) -> list[Memory]:
-        return self._store.get_all()
+        try:
+            return await self._store.get_all()
+        except Exception as e:
+            raise ProviderError(f"Failed to retrieve all memories: {e}") from e
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,
@@ -32,20 +39,32 @@ class MemoryManager:
         Otherwise fall back to returning recent memories.
         """
 
+        if not query or not query.strip():
+            return []
+
         try:
-            return self._store.search(
+            return await self._store.search(
                 query=query,
                 limit=limit,
             )
         except NotImplementedError:
-            return self._store.get_all()[-limit:]
+            memories = await self._store.get_all()
+            return memories[-limit:]
+        except Exception as e:
+            raise ProviderError(f"Failed to search memories: {e}") from e
 
     def clear(
         self,
     ) -> None:
-        self._store.clear()
+        try:
+            self._store.clear()
+        except Exception as e:
+            raise ProviderError(f"Failed to clear memories: {e}") from e
 
     def count(
         self,
     ) -> int:
-        return self._store.count()
+        try:
+            return self._store.count()
+        except Exception as e:
+            raise ProviderError(f"Failed to count memories: {e}") from e

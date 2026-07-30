@@ -3,10 +3,11 @@ from typing import Any
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
+from doitall.config.settings import settings
 from doitall.memory.constants import (
     DEFAULT_COLLECTION_NAME,
     DEFAULT_DISTANCE,
-    DEFAULT_VECTOR_SIZE,
+    get_vector_size_for_model,
 )
 from doitall.memory.vector_store import VectorStore
 
@@ -16,9 +17,13 @@ class QdrantStore(VectorStore):
         self,
         client: QdrantClient,
         collection_name: str = DEFAULT_COLLECTION_NAME,
+        vector_size: int | None = None,
     ) -> None:
         self.client = client
         self.collection_name = collection_name
+        self.vector_size = vector_size or get_vector_size_for_model(
+            settings.EMBEDDING_MODEL
+        )
 
         self._ensure_collection()
 
@@ -31,7 +36,7 @@ class QdrantStore(VectorStore):
         self.client.create_collection(
             collection_name=self.collection_name,
             vectors_config=VectorParams(
-                size=DEFAULT_VECTOR_SIZE,
+                size=self.vector_size,
                 distance=Distance[DEFAULT_DISTANCE],
             ),
         )

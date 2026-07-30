@@ -9,17 +9,17 @@ class EmbeddingManager:
     ) -> None:
         self.service = service
 
-    def embed(
+    async def embed(
         self,
         text: str,
     ) -> list[float]:
-        return self.service.embed(text)
+        return await self.service.embed(text)
 
-    def embed_batch(
+    async def embed_batch(
         self,
         texts: list[str],
     ) -> list[list[float]]:
-        return self.service.embed_batch(texts)
+        return await self.service.embed_batch(texts)
 
     @classmethod
     def from_model(

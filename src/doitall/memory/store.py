@@ -5,14 +5,14 @@ from doitall.models.memory import Memory
 
 class MemoryStore(ABC):
     @abstractmethod
-    def add(
+    async def add(
         self,
         memory: Memory,
     ) -> None:
         pass
 
     @abstractmethod
-    def get_all(self) -> list[Memory]:
+    async def get_all(self) -> list[Memory]:
         pass
 
     @abstractmethod
@@ -23,7 +23,7 @@ class MemoryStore(ABC):
     def count(self) -> int:
         pass
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,

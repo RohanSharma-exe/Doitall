@@ -17,14 +17,14 @@ class VectorKnowledgeRepository(KnowledgeRepository):
         self.embedding_manager = embedding_manager
         self.vector_store = vector_store
 
-    def add(
+    async def add(
         self,
         document: Document,
     ) -> None:
         chunks = self.chunker.chunk(document)
 
         for chunk in chunks:
-            vector = self.embedding_manager.embed(chunk.text)
+            vector = await self.embedding_manager.embed(chunk.text)
 
             payload = ChunkSerializer.to_payload(chunk)
 
@@ -34,12 +34,12 @@ class VectorKnowledgeRepository(KnowledgeRepository):
                 payload=payload,
             )
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,
     ) -> list[Document]:
-        vector = self.embedding_manager.embed(query)
+        vector = await self.embedding_manager.embed(query)
 
         results = self.vector_store.search(
             vector=vector,

@@ -5,14 +5,14 @@ from doitall.knowledge.document import Document
 
 class KnowledgeRepository(ABC):
     @abstractmethod
-    def add(
+    async def add(
         self,
         document: Document,
     ) -> None:
         """Index a document."""
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,

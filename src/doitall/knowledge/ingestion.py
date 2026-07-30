@@ -1,3 +1,4 @@
+from doitall.core.exceptions import ProviderError, ValidationError
 from doitall.knowledge.document import Document
 from doitall.knowledge.repository import KnowledgeRepository
 
@@ -9,15 +10,31 @@ class KnowledgeIngestionService:
     ) -> None:
         self.repository = repository
 
-    def ingest(
+    async def ingest(
         self,
         document: Document,
     ) -> None:
-        self.repository.add(document)
+        if not document or not document.content or not document.content.strip():
+            raise ValidationError("Document content cannot be empty")
 
-    def ingest_many(
+        await self.repository.add(document)
+
+    async def ingest_many(
         self,
         documents: list[Document],
     ) -> None:
+        if not documents:
+            return
+
+        failed_documents = []
+
         for document in documents:
-            self.repository.add(document)
+            try:
+                await self.ingest(document)
+            except Exception as e:
+                failed_documents.append((document.id if document else "unknown", str(e)))
+
+        if failed_documents:
+            error_msg = f"Failed to ingest {len(failed_documents)} out of {len(documents)} documents. "
+            error_msg += f"Failed document IDs: {[doc_id for doc_id, _ in failed_documents]}"
+            raise ProviderError(error_msg)

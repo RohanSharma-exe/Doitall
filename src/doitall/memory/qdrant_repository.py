@@ -14,11 +14,11 @@ class QdrantRepository(VectorRepository):
         self.vector_store = vector_store
         self.embedding_manager = embedding_manager
 
-    def save(
+    async def save(
         self,
         memory: Memory,
     ) -> None:
-        vector = self.embedding_manager.embed(
+        vector = await self.embedding_manager.embed(
             memory.content,
         )
 
@@ -32,12 +32,12 @@ class QdrantRepository(VectorRepository):
             payload=payload,
         )
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,
     ) -> list[Memory]:
-        vector = self.embedding_manager.embed(query)
+        vector = await self.embedding_manager.embed(query)
 
         results = self.vector_store.search(
             vector=vector,

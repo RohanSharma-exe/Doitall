@@ -3,14 +3,14 @@ from abc import ABC, abstractmethod
 
 class EmbeddingService(ABC):
     @abstractmethod
-    def embed(
+    async def embed(
         self,
         text: str,
     ) -> list[float]:
         """Generate an embedding for a single text."""
 
     @abstractmethod
-    def embed_batch(
+    async def embed_batch(
         self,
         texts: list[str],
     ) -> list[list[float]]:

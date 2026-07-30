@@ -28,3 +28,7 @@ class AuthorizationError(DoitallError):
 
 class ValidationError(DoitallError):
     """Raised for validation failures."""
+
+
+class EmbeddingError(DoitallError):
+    """Raised when embedding generation fails."""

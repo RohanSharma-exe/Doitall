@@ -1,17 +1,20 @@
-from unittest.mock import Mock
+import pytest
+from unittest.mock import AsyncMock, Mock
 
 from doitall.memory.vector_memory_store import VectorMemoryStore
 from doitall.models.memory import Memory
 
 
-def test_add_calls_repository():
+@pytest.mark.asyncio
+async def test_add_calls_repository():
     repository = Mock()
+    repository.save = AsyncMock()
 
     store = VectorMemoryStore(repository)
 
     memory = Memory(content="Python is awesome.")
 
-    store.add(memory)
+    await store.add(memory)
 
     repository.save.assert_called_once_with(memory)
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 from litellm import (
     AuthenticationError,
     RateLimitError,
@@ -16,15 +18,32 @@ from doitall.providers.exceptions import (
 
 
 class LiteLLMClient:
-    """LiteLLM wrapper."""
+    """LiteLLM wrapper for unified LLM provider access."""
 
     async def chat(
         self,
         *,
         model: str,
-        messages: list[dict],
-        **kwargs,
-    ):
+        messages: list[dict[str, str]],
+        **kwargs: Any,
+    ) -> Any:
+        """Send a chat completion request to the LLM provider.
+
+        Args:
+            model: The model identifier to use.
+            messages: List of message dictionaries with role and content.
+            **kwargs: Additional parameters to pass to the LLM provider.
+
+        Returns:
+            The LLM provider's response.
+
+        Raises:
+            ProviderAuthenticationError: If authentication fails.
+            ProviderRateLimitError: If rate limit is exceeded.
+            ProviderUnavailableError: If the provider is unavailable.
+            ProviderTimeoutError: If the request times out.
+            ProviderResponseError: For other provider errors.
+        """
         try:
             return await acompletion(
                 model=model,

@@ -1,3 +1,5 @@
+from loguru import logger
+
 from doitall.agent.executor import AgentExecutor
 from doitall.models.message import AssistantMessage, UserMessage
 from doitall.runtime.context_assembler import ContextAssembler
@@ -47,9 +49,15 @@ class ChatService:
             assistant_message,
         )
 
-        await self._memory_pipeline.process(
-            user_message,
-            assistant_message,
-        )
+        try:
+            await self._memory_pipeline.process(
+                user_message,
+                assistant_message,
+            )
+        except Exception as e:
+            # Memory storage is best-effort — a failure must never
+            # prevent the user from receiving the LLM's response.
+            logger.warning(f"Memory pipeline failed (non-fatal): {e}")
 
         return response.content
+

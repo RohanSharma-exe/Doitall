@@ -1,5 +1,5 @@
 from doitall.agent.agent import Agent
-from doitall.core.bootstrap import bootstrap
+from doitall.core.bootstrap import bootstrap, cleanup
 from doitall.runtime.runtime_factory import RuntimeFactory
 
 
@@ -17,6 +17,7 @@ class Doitall:
         )
 
         self._chat_service = factory.create(agent)
+        self._is_running = False
 
     async def chat(
         self,
@@ -26,6 +27,20 @@ class Doitall:
 
     def start(self) -> None:
         """Start the application."""
+        if self._is_running:
+            return
+
+        self._is_running = True
 
     def stop(self) -> None:
-        """Stop the application."""
+        """Stop the application and clean up resources."""
+        if not self._is_running:
+            return
+
+        self._is_running = False
+        cleanup()
+
+    @property
+    def is_running(self) -> bool:
+        """Check if the application is running."""
+        return self._is_running

@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
-    """Application settings."""
+    """Application settings loaded from environment variables and .env file."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -63,10 +63,13 @@ class Settings(BaseSettings):
     # ----------------------------
     # Default Models
     # ----------------------------
+    OPENAI_MODEL: str = "gpt-4o"
     GEMINI_MODEL: str = "gemini/gemini-2.5-flash"
     GROQ_MODEL: str = "groq/llama-3.3-70b-versatile"
+    ANTHROPIC_MODEL: str = "anthropic/claude-3-5-sonnet-20241022"
     NVIDIA_MODEL: str = "nvidia/llama-3.3-nemotron-super-49b-v1"
     OLLAMA_MODEL: str = "ollama/llama3.2"
+    OPENROUTER_MODEL: str = "openrouter/anthropic/claude-3.5-sonnet"
 
     # ----------------------------
     # Paths
@@ -79,7 +82,7 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached application settings."""
+    """Return cached application settings to avoid repeated loading."""
     return Settings()
 
 

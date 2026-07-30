@@ -8,16 +8,35 @@ from doitall.runtime.context import RuntimeContext
 
 
 class PromptBuilder:
+    """Builds prompts for LLM providers from runtime context.
+
+    The PromptBuilder constructs the final message sequence by combining
+    system prompts, memories, knowledge, and conversation history.
+    """
+
     def __init__(
         self,
         agent: AgentManager,
     ) -> None:
+        """Initialize the prompt builder.
+
+        Args:
+            agent: The agent manager containing system prompt configuration.
+        """
         self._agent = agent
 
     def build(
         self,
         context: RuntimeContext,
     ) -> list[Message]:
+        """Build the complete message sequence for the LLM.
+
+        Args:
+            context: The runtime context with all relevant information.
+
+        Returns:
+            List of messages formatted for the LLM provider.
+        """
         messages: list[Message] = []
 
         self._add_system_prompt(messages)
@@ -32,6 +51,11 @@ class PromptBuilder:
         self,
         messages: list[Message],
     ) -> None:
+        """Add the system prompt if configured.
+
+        Args:
+            messages: The message list to append to.
+        """
         if self._agent.system_prompt:
             messages.append(
                 SystemMessage(
@@ -44,6 +68,12 @@ class PromptBuilder:
         messages: list[Message],
         context: RuntimeContext,
     ) -> None:
+        """Add relevant memories to the context.
+
+        Args:
+            messages: The message list to append to.
+            context: The runtime context containing memories.
+        """
         if not context.memories:
             return
 
@@ -60,6 +90,12 @@ class PromptBuilder:
         messages: list[Message],
         context: RuntimeContext,
     ) -> None:
+        """Add relevant knowledge documents to the context.
+
+        Args:
+            messages: The message list to append to.
+            context: The runtime context containing knowledge.
+        """
         if not context.knowledge:
             return
 

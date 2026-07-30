@@ -6,10 +6,10 @@ class InMemoryStore(MemoryStore):
     def __init__(self) -> None:
         self._memories: list[Memory] = []
 
-    def add(self, memory: Memory) -> None:
+    async def add(self, memory: Memory) -> None:
         self._memories.append(memory)
 
-    def get_all(self) -> list[Memory]:
+    async def get_all(self) -> list[Memory]:
         return self._memories.copy()
 
     def clear(self) -> None:

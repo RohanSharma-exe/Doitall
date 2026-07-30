@@ -7,7 +7,7 @@ from doitall.runtime.memory_provider import MemoryProvider
 
 
 class FakeMemoryManager:
-    def search(
+    async def search(
         self,
         query: str,
         limit: int,
@@ -45,7 +45,7 @@ async def test_no_messages_but_has_query():
     """When there are no messages but a query is set, memories should be fetched."""
 
     class AnyQueryManager:
-        def search(self, query: str, limit: int):
+        async def search(self, query: str, limit: int):
             return [Memory(content="found")]
 
     provider = MemoryProvider(AnyQueryManager())
@@ -79,7 +79,7 @@ async def test_falls_back_to_last_message_when_no_query():
         def __init__(self):
             self.called_with = None
 
-        def search(self, query: str, limit: int):
+        async def search(self, query: str, limit: int):
             self.called_with = query
             return []
 

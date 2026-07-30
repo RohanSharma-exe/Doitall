@@ -27,7 +27,7 @@ class MemoryProvider(ContextProvider):
             return
 
         context.memories.extend(
-            self._manager.search(
+            await self._manager.search(
                 query=query,
                 limit=self._limit,
             )

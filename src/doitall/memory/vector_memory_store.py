@@ -10,24 +10,24 @@ class VectorMemoryStore(MemoryStore):
     ) -> None:
         self.repository = repository
 
-    def add(
+    async def add(
         self,
         memory: Memory,
     ) -> None:
-        self.repository.save(memory)
+        await self.repository.save(memory)
 
-    def get_all(self) -> list[Memory]:
-        return self.repository.search(
+    async def get_all(self) -> list[Memory]:
+        return await self.repository.search(
             query="",
             limit=10000,
         )
 
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,
     ) -> list[Memory]:
-        return self.repository.search(
+        return await self.repository.search(
             query=query,
             limit=limit,
         )

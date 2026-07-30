@@ -5,11 +5,11 @@ from doitall.models.memory import Memory
 
 class VectorRepository(ABC):
     @abstractmethod
-    def save(self, memory: Memory) -> None:
+    async def save(self, memory: Memory) -> None:
         pass
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         query: str,
         limit: int = 5,

@@ -1,27 +1,32 @@
-from unittest.mock import Mock
+import pytest
+from unittest.mock import AsyncMock, Mock
 
 from doitall.embeddings.manager import EmbeddingManager
 
 
-def test_embed():
+@pytest.mark.asyncio
+async def test_embed():
     service = Mock()
-
+    service.embed = AsyncMock()
     service.embed.return_value = [1.0]
 
     manager = EmbeddingManager(service)
 
-    assert manager.embed("hello") == [1.0]
+    result = await manager.embed("hello")
+    assert result == [1.0]
 
     service.embed.assert_called_once_with("hello")
 
 
-def test_embed_batch():
+@pytest.mark.asyncio
+async def test_embed_batch():
     service = Mock()
-
+    service.embed_batch = AsyncMock()
     service.embed_batch.return_value = [[1.0]]
 
     manager = EmbeddingManager(service)
 
-    assert manager.embed_batch(["hello"]) == [[1.0]]
+    result = await manager.embed_batch(["hello"])
+    assert result == [[1.0]]
 
     service.embed_batch.assert_called_once_with(["hello"])

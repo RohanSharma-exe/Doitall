@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -10,12 +10,11 @@ from doitall.runtime.knowledge_provider import KnowledgeProvider
 @pytest.mark.asyncio
 async def test_populate():
     repository = Mock()
-
-    repository.search.return_value = [
+    repository.search = AsyncMock(return_value=[
         Document(
             content="Python",
         )
-    ]
+    ])
 
     provider = KnowledgeProvider(repository)
 
@@ -30,8 +29,7 @@ async def test_populate():
 @pytest.mark.asyncio
 async def test_repository_called():
     repository = Mock()
-
-    repository.search.return_value = []
+    repository.search = AsyncMock(return_value=[])
 
     provider = KnowledgeProvider(repository)
 
@@ -46,6 +44,7 @@ async def test_repository_called():
 async def test_empty_query_skips_search():
     """KnowledgeProvider should not call search when query is empty."""
     repository = Mock()
+    repository.search = AsyncMock()
 
     provider = KnowledgeProvider(repository)
 

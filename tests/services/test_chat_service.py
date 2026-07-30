@@ -62,3 +62,33 @@ async def test_chat_service_round_trip():
         messages[0],
         messages[1],
     )
+
+
+@pytest.mark.asyncio
+async def test_chat_service_memory_failure_is_non_fatal():
+    """If memory_pipeline.process() raises, the LLM response must still be returned."""
+    conversation = ConversationService()
+    assembler = FakeContextAssembler(conversation)
+
+    executor = AsyncMock(spec=AgentExecutor)
+    executor.execute.return_value = ProviderResponse(
+        content="Still works!",
+        tool_calls=[],
+        finish_reason="stop",
+        model="test",
+    )
+
+    memory_pipeline = AsyncMock(spec=MemoryPipeline)
+    memory_pipeline.process.side_effect = RuntimeError("Qdrant unavailable")
+
+    service = ChatService(
+        conversation_service=conversation,
+        context_assembler=assembler,
+        agent_executor=executor,
+        memory_pipeline=memory_pipeline,
+    )
+
+    # Must NOT raise — memory failure is swallowed
+    response = await service.chat("Hello")
+
+    assert response == "Still works!"

@@ -107,8 +107,8 @@ class RuntimeFactory:
         memory_pipeline = MemoryPipeline(
             manager=memory_manager,
             extractor=MemoryExtractor(),
-            memory_filter=MemoryFilter(),
-            scorer=MemoryScorer(),
+            memory_filter=MemoryFilter(min_length=10, max_length=10000),
+            scorer=MemoryScorer(base_score=0.5),
         )
 
         return ChatService(

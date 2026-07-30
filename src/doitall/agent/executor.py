@@ -25,7 +25,7 @@ class AgentExecutor:
     ) -> ProviderResponse:
         response = await self._runtime.execute(context)
 
-        for iteration in range(self.MAX_TOOL_ITERATIONS):
+        for _iteration in range(self.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
                 return response
 

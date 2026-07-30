@@ -2,7 +2,7 @@ from doitall.agent.agent import Agent
 from doitall.agent.manager import AgentManager
 from doitall.knowledge.document import Document
 from doitall.models.memory import Memory
-from doitall.models.message import UserMessage
+from doitall.models.message import AssistantMessage, UserMessage
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.prompt_builder import PromptBuilder
 
@@ -48,9 +48,6 @@ def test_without_system_prompt():
 
     assert len(messages) == 1
     assert messages[0].content == "Hello"
-
-
-from doitall.models.message import AssistantMessage
 
 
 def test_message_order():

@@ -1,3 +1,5 @@
+"""Application constants and configuration."""
+
 from pathlib import Path
 
 APP_NAME = "Doitall"
@@ -23,4 +25,4 @@ SUPPORTED_LLM_PROVIDERS = (
     "openrouter",
 )
 
-DEFAULT_PROVIDER = "openai"
+DEFAULT_PROVIDER = "gemini"

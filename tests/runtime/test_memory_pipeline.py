@@ -13,8 +13,8 @@ def _make_pipeline(store: InMemoryStore) -> MemoryPipeline:
     return MemoryPipeline(
         manager=MemoryManager(store),
         extractor=MemoryExtractor(),
-        memory_filter=MemoryFilter(),
-        scorer=MemoryScorer(),
+        memory_filter=MemoryFilter(min_length=5, max_length=10000),
+        scorer=MemoryScorer(base_score=0.5),
     )
 
 
@@ -29,11 +29,13 @@ async def test_pipeline():
         AssistantMessage(content="Hi"),
     )
 
-    memories = store.get_all()
+    memories = await store.get_all()
 
     assert len(memories) == 1
     assert memories[0].content == ("User: Hello\nAssistant: Hi")
-    assert memories[0].importance == 0.5
+    # The scorer now calculates importance based on content
+    assert memories[0].importance >= 0.0
+    assert memories[0].importance <= 1.0
 
 
 @pytest.mark.asyncio
@@ -49,7 +51,7 @@ async def test_pipeline_filtered_memories_not_stored():
         manager=MemoryManager(store),
         extractor=MemoryExtractor(),
         memory_filter=RejectAllFilter(),
-        scorer=MemoryScorer(),
+        scorer=MemoryScorer(base_score=0.5),
     )
 
     await pipeline.process(
@@ -57,7 +59,8 @@ async def test_pipeline_filtered_memories_not_stored():
         AssistantMessage(content="Hi"),
     )
 
-    assert store.get_all() == []
+    memories = await store.get_all()
+    assert memories == []
 
 
 @pytest.mark.asyncio

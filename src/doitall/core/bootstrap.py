@@ -5,11 +5,12 @@ from qdrant_client import QdrantClient
 
 from doitall.config.logging import configure_logging
 from doitall.config.settings import settings
-from doitall.database.session import engine
+from doitall.database.session import engine, init_db
 from doitall.embeddings.manager import EmbeddingManager
 from doitall.knowledge.ingestion import KnowledgeIngestionService
 from doitall.knowledge.simple_chunker import SimpleChunker
 from doitall.knowledge.vector_repository import VectorKnowledgeRepository
+from doitall.memory.constants import get_vector_size_for_model
 from doitall.memory.qdrant_repository import QdrantRepository
 from doitall.memory.qdrant_store import QdrantStore
 from doitall.memory.vector_memory_store import VectorMemoryStore
@@ -20,11 +21,26 @@ from doitall.skills.manager import SkillManager
 from doitall.skills.registry import SkillRegistry
 from doitall.workspace.workspace import Workspace
 
+_bootstrap_has_run = False
+
 
 def bootstrap() -> None:
     """Initialize the application."""
 
+    global _bootstrap_has_run
+
+    if _bootstrap_has_run:
+        logger.warning(
+            "Bootstrap has already been called. Skipping duplicate initialization."
+        )
+        return
+
+    _bootstrap_has_run = True
+
     configure_logging()
+
+    # Initialize database
+    init_db()
 
     provider_manager = ProviderManager()
 
@@ -43,6 +59,7 @@ def bootstrap() -> None:
     qdrant_store = QdrantStore(
         client=qdrant_client,
         collection_name="memories",
+        vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
     )
 
     # Knowledge store — uses a SEPARATE 'knowledge' collection to prevent
@@ -50,6 +67,7 @@ def bootstrap() -> None:
     knowledge_qdrant_store = QdrantStore(
         client=qdrant_client,
         collection_name="knowledge",
+        vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
     )
 
     qdrant_repository = QdrantRepository(
@@ -104,3 +122,43 @@ def bootstrap() -> None:
     logger.info(f"Starting {settings.APP_NAME}")
     logger.info(f"Version: {settings.APP_VERSION}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
+
+
+def cleanup() -> None:
+    """Clean up resources when shutting down the application."""
+
+    global _bootstrap_has_run
+
+    if not _bootstrap_has_run:
+        return
+
+    logger.info("Cleaning up resources...")
+
+    try:
+        # Close Qdrant client
+        if container.has("qdrant_client"):
+            qdrant_client = container.resolve("qdrant_client")
+            try:
+                qdrant_client.close()
+                logger.info("Qdrant client closed")
+            except Exception as e:
+                logger.warning(f"Failed to close Qdrant client: {e}")
+
+        # Dispose database engine
+        if container.has("engine"):
+            engine = container.resolve("engine")
+            try:
+                engine.dispose()
+                logger.info("Database engine disposed")
+            except Exception as e:
+                logger.warning(f"Failed to dispose database engine: {e}")
+
+        # Clear the container
+        container.clear()
+
+        logger.info("Cleanup completed")
+
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
+    finally:
+        _bootstrap_has_run = False
