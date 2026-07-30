@@ -7,7 +7,11 @@ from doitall.workspace.workspace import Workspace
 
 
 @pytest.fixture
-def skill(tmp_path: Path) -> FilesystemSkill:
+def skill(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FilesystemSkill:
+    monkeypatch.setattr(
+        "doitall.skills.filesystem.settings.ENABLE_FILESYSTEM_WRITE_TOOLS",
+        True,
+    )
     workspace = Workspace(tmp_path)
     return FilesystemSkill(workspace)
 
@@ -89,3 +93,15 @@ async def test_delete(skill: FilesystemSkill):
 async def test_unknown_action(skill: FilesystemSkill):
     with pytest.raises(ValueError):
         await skill.execute(action="invalid")
+
+
+@pytest.mark.asyncio
+async def test_write_denied_by_default(tmp_path: Path):
+    skill = FilesystemSkill(Workspace(tmp_path))
+
+    with pytest.raises(PermissionError):
+        await skill.execute(
+            action="write",
+            path="hello.txt",
+            content="Hello",
+        )

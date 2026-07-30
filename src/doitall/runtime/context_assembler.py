@@ -23,6 +23,8 @@ class ContextAssembler:
     async def assemble(
         self,
         query: str,
+        *,
+        provider: str | None = None,
     ) -> RuntimeContext:
         """Assemble the runtime context by calling all providers.
 
@@ -34,6 +36,7 @@ class ContextAssembler:
         """
         context = RuntimeContext(
             query=query,
+            provider=provider,
         )
 
         for provider in self._providers:

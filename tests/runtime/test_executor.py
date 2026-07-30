@@ -96,6 +96,21 @@ async def test_execute():
 
 
 @pytest.mark.asyncio
+async def test_execute_uses_provider_override():
+    executor, _ = create_executor()
+
+    override_provider = AsyncMock()
+    override_provider.chat.return_value = "OVERRIDE"
+    executor._provider_manager.get.return_value = override_provider
+
+    response = await executor.execute(RuntimeContext(provider="groq"))
+
+    assert response == "OVERRIDE"
+    executor._provider_manager.get.assert_called_once_with("groq")
+    executor._provider_manager.default.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_provider_called_once():
     executor, provider = create_executor()
 
