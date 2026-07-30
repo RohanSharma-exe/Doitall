@@ -1,9 +1,10 @@
 """Knowledge ingestion route — add documents to the RAG knowledge base."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from doitall.api.models import IngestRequest, IngestResponse
 from doitall.core.exceptions import DoitallError, ValidationError
 from doitall.knowledge.document import Document
+from doitall.security.auth import require_api_key
 from doitall.services.registry import container
 
 router = APIRouter()
@@ -15,6 +16,7 @@ router = APIRouter()
     status_code=201,
     summary="Ingest a document into the knowledge base",
     tags=["knowledge"],
+    dependencies=[Depends(require_api_key)],
 )
 async def ingest(request: IngestRequest) -> IngestResponse:
     """

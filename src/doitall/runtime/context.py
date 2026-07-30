@@ -19,6 +19,9 @@ class RuntimeContext(BaseModel):
     query: str = ""
     """The user's query or input."""
 
+    provider: str | None = None
+    """Optional provider override for this runtime execution."""
+
     messages: list[Message] = Field(default_factory=list)
     """Conversation history messages."""
 

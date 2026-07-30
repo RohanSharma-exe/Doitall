@@ -23,6 +23,8 @@ class ChatService:
     async def chat(
         self,
         content: str,
+        *,
+        provider: str | None = None,
     ) -> str:
         user_message = UserMessage(
             content=content,
@@ -32,9 +34,15 @@ class ChatService:
             user_message,
         )
 
-        context = await self._context_assembler.assemble(
-            content,
-        )
+        if provider:
+            context = await self._context_assembler.assemble(
+                content,
+                provider=provider,
+            )
+        else:
+            context = await self._context_assembler.assemble(
+                content,
+            )
 
         response = await self._agent_executor.execute(
             context,
@@ -60,4 +68,3 @@ class ChatService:
             logger.warning(f"Memory pipeline failed (non-fatal): {e}")
 
         return response.content
-

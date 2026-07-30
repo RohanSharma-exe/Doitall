@@ -92,6 +92,7 @@ def bootstrap() -> None:
     from doitall.providers.registry import register_providers
 
     register_providers(provider_manager)
+    provider_manager.set_default(settings.DEFAULT_PROVIDER)
 
     skill_registry = SkillRegistry()
     skill_manager = SkillManager(
