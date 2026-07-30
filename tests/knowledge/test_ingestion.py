@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from doitall.core.exceptions import ProviderError, ValidationError
 from doitall.knowledge.document import Document
@@ -18,9 +19,12 @@ def _make_service(add_side_effect=None):
 @pytest.mark.asyncio
 async def test_ingest_valid_document():
     service, repo = _make_service()
+    repo.add.return_value = 1
     doc = Document(content="Valid content")
-    await service.ingest(doc)
+    result = await service.ingest(doc)
     repo.add.assert_called_once_with(doc)
+    assert result.document_id == doc.id
+    assert result.chunk_count == 1
 
 
 @pytest.mark.asyncio
@@ -40,16 +44,19 @@ async def test_ingest_whitespace_only_raises():
 @pytest.mark.asyncio
 async def test_ingest_many_calls_add_for_each():
     service, repo = _make_service()
+    repo.add.return_value = 1
     docs = [Document(content="One"), Document(content="Two"), Document(content="Three")]
-    await service.ingest_many(docs)
+    results = await service.ingest_many(docs)
     assert repo.add.call_count == 3
+    assert len(results) == 3
 
 
 @pytest.mark.asyncio
 async def test_ingest_many_empty_list_is_noop():
     service, repo = _make_service()
-    await service.ingest_many([])
+    results = await service.ingest_many([])
     repo.add.assert_not_called()
+    assert results == []
 
 
 @pytest.mark.asyncio

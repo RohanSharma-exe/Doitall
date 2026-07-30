@@ -56,16 +56,27 @@ class CalculatorSkill(BaseSkill):
 
     def _evaluate(self, node):
         if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool) or not isinstance(node.value, int | float):
+                raise ValueError("Unsupported expression.")
+
             return node.value
 
         if isinstance(node, ast.BinOp):
-            return _OPERATORS[type(node.op)](
+            operator_type = type(node.op)
+            if operator_type not in _OPERATORS:
+                raise ValueError("Unsupported expression.")
+
+            return _OPERATORS[operator_type](
                 self._evaluate(node.left),
                 self._evaluate(node.right),
             )
 
         if isinstance(node, ast.UnaryOp):
-            return _OPERATORS[type(node.op)](
+            operator_type = type(node.op)
+            if operator_type not in _OPERATORS:
+                raise ValueError("Unsupported expression.")
+
+            return _OPERATORS[operator_type](
                 self._evaluate(node.operand),
             )
 

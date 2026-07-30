@@ -23,6 +23,12 @@ class ProviderManager:
     def get(self, name: str) -> BaseProvider:
         return self._providers[name]
 
+    def set_default(self, name: str) -> None:
+        if name not in self._providers:
+            raise RuntimeError(f"Unknown provider configured as default: {name}")
+
+        self._default = name
+
     def default(self) -> BaseProvider:
         if self._default is None:
             raise RuntimeError("No default provider configured.")
@@ -34,6 +40,9 @@ class ProviderManager:
 
     def names(self) -> list[str]:
         return sorted(self._providers.keys())
+
+    def all(self) -> list[BaseProvider]:
+        return [self._providers[name] for name in self.names()]
 
     def clear(self) -> None:
         self._providers.clear()

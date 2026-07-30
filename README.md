@@ -3,7 +3,7 @@
 > A production-first AI framework for building intelligent agents, RAG systems, persistent memory, and AI-powered applications.
 
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
-![Tests](https://img.shields.io/badge/Tests-169%20Passing-success)
+![Tests](https://img.shields.io/badge/Tests-see%20test%20suite-informational)
 ![Code%20Style](https://img.shields.io/badge/Ruff-Clean-brightgreen)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue)
 
@@ -59,11 +59,17 @@ uv sync
 
 # Configure
 cp .env.example .env
-# Set GEMINI_API_KEY, QDRANT_URL, EMBEDDING_MODEL, etc.
+# Set DEFAULT_PROVIDER, provider API keys, QDRANT_URL, EMBEDDING_MODEL, etc.
 
 # Run
 uv run python -m doitall
+
+# Or start the REST API
+uv run doitall start
 ```
+
+> Note: if `.env.example` is not present in your checkout, create `.env`
+> with the settings shown in the Configuration section below.
 
 ---
 
@@ -98,6 +104,10 @@ uv run python -m doitall
 ### ✅ Providers
 - `GeminiProvider` — chat, tool calling, response normalization
 - `GroqProvider` — chat, tool calling, response normalization
+- `OpenAIProvider`, `AnthropicProvider`, `OllamaProvider`, and `OpenrouterProvider`
+  are registered provider adapters
+- `DEFAULT_PROVIDER` controls the bootstrapped default provider
+- Chat requests can override the provider per request
 - `BaseProvider` — abstract base; missing `chat()` fails at class load time
 - `LiteLLMClient` — shared client with typed error translation
 
@@ -112,6 +122,8 @@ uv run python -m doitall
 - `PromptBuilder` — builds system + memory + knowledge + message prompt
 - `RuntimeExecutor` — sends prepared messages to LLM provider
 - `ToolMessageBuilder` — formats tool results for LLM re-submission
+- API chat sessions reuse conversation state by `session_id` for the current
+  process lifetime
 
 ### ✅ Core Infrastructure
 - `bootstrap()` — single DI wiring function; correct instantiation order
@@ -119,6 +131,80 @@ uv run python -m doitall
 - Pydantic v2 models throughout
 - Loguru structured logging
 - `Workspace` — sandboxed file I/O
+- Optional API-key protection for mutating endpoints
+- Filesystem write/delete tool actions are disabled unless explicitly enabled
+
+---
+
+## Configuration
+
+Common `.env` values:
+
+```env
+DEFAULT_PROVIDER=gemini
+
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GROQ_API_KEY=
+OPENROUTER_API_KEY=
+
+QDRANT_URL=http://localhost:6333
+QDRANT_API_KEY=
+EMBEDDING_MODEL=text-embedding-3-large
+
+DATABASE_URL=sqlite:///storage/doitall.db
+
+# Optional. When set, POST /v1/chat and POST /v1/knowledge/ingest require
+# either Authorization: Bearer <key> or X-API-Key: <key>.
+API_KEY=
+
+# Keep false for production unless you intentionally want the LLM-exposed
+# filesystem tool to write/delete files inside the workspace.
+ENABLE_FILESYSTEM_WRITE_TOOLS=false
+```
+
+---
+
+## REST API
+
+Start the server:
+
+```bash
+uv run doitall start --host 127.0.0.1 --port 8000
+```
+
+Open docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+Send a chat message:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"What is 12 * 9?","provider":"gemini"}'
+```
+
+Continue the same in-process session by passing the returned `session_id`:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"session_id":"<session-id>","message":"What did I just ask?"}'
+```
+
+Ingest a knowledge document:
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/knowledge/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Notes","content":"Doitall stores RAG chunks in Qdrant."}'
+```
+
+The ingestion response includes the `document_id`, `chunk_count`, and status.
 
 ---
 
@@ -128,7 +214,7 @@ uv run python -m doitall
 src/doitall/
 
 ├── agent/          Agent model, executor, tool loop
-├── api/            REST API layer (planned)
+├── api/            REST API layer
 ├── config/         Settings (pydantic-settings), logging
 ├── core/           bootstrap(), DI container
 ├── database/       SQLAlchemy session (persistence planned)
@@ -141,7 +227,7 @@ src/doitall/
 ├── plugins/        Plugin lifecycle (planned)
 ├── providers/      Gemini, Groq, base, LiteLLM client
 ├── runtime/        ContextAssembler, providers, PromptBuilder, executor
-├── security/       Auth, permissions (planned)
+├── security/       Optional API key auth, permissions (planned)
 ├── serialization/  MemorySerializer, ChunkSerializer
 ├── services/       ChatService, ConversationService, ToolCallingEngine
 ├── skills/         SkillRegistry, manager, BaseSkill, built-ins
@@ -168,12 +254,13 @@ src/doitall/
 ## Testing
 
 ```bash
-uv run pytest          # 169 tests, all passing
+uv run pytest          # run the test suite
 uv run ruff check .    # lint
 uv run ruff format .   # format
 ```
 
-Current coverage: **169 tests** across agent, memory, knowledge, runtime, providers, services, and skills modules.
+The test suite covers agent, memory, knowledge, runtime, providers, services,
+skills, serialization, API models, and workspace behavior.
 
 ---
 
@@ -189,24 +276,27 @@ Current coverage: **169 tests** across agent, memory, knowledge, runtime, provid
 - Tool / skill execution engine
 - Document loaders (TXT, Markdown, directory)
 - DI container + bootstrap
-- 169-test suite
+- REST API routes for chat, health, provider listing, and knowledge ingestion
+- Optional API-key authentication for mutating endpoints
+- Per-request provider overrides
+- In-process session reuse by `session_id`
+- Knowledge ingestion responses with chunk counts
 
 ### 🔥 Next (Phase 1 — Production Hardening)
-- [ ] OpenAI provider implementation
-- [ ] Anthropic provider implementation
+- [ ] Persist chat sessions beyond process memory
+- [ ] Real provider health checks that validate credentials/connectivity
 - [ ] Conversation persistence (SQLite/Postgres via `database/`)
 - [ ] Real `MemoryFilter` (min-length, deduplication)
 - [ ] Real `MemoryScorer` (embedding similarity)
-- [ ] Bootstrap singleton guard (prevent double-init)
-- [ ] `Doitall.start()` / `stop()` lifecycle hooks
+- [ ] Per-agent permission scoping for tools
 
 ### 📡 Phase 2 — REST API
-- [ ] FastAPI routes: `POST /chat`, `GET /health`, `POST /knowledge/ingest`
+- [x] FastAPI routes: `POST /chat`, `GET /health`, `GET /providers`, `POST /knowledge/ingest`
 - [ ] Streaming endpoint (`POST /chat/stream` with SSE)
-- [ ] Pydantic request/response schemas
+- [x] Pydantic request/response schemas
 
 ### 🔐 Phase 3 — Security
-- [ ] API key authentication
+- [x] Optional API key authentication
 - [ ] Per-agent permission scoping
 - [ ] Rate limiting
 

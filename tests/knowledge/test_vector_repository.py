@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from doitall.knowledge.document import Document
 from doitall.knowledge.simple_chunker import SimpleChunker
@@ -30,13 +31,14 @@ async def test_add_document():
         vector_store=vector_store,
     )
 
-    await repository.add(Document(id="doc-1", content="hello"))
+    chunk_count = await repository.add(Document(id="doc-1", content="hello"))
 
     vector_store.upsert.assert_called_once_with(
         point_id="chunk-1",
         vector=[0.1, 0.2],
         payload=ChunkSerializer.to_payload(chunk),
     )
+    assert chunk_count == 1
 
 
 def test_repository_creation():

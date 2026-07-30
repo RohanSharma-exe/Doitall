@@ -27,6 +27,9 @@ ContextAssembler
 RuntimeContext
  │
  ▼
+Provider selection (default or per-request override)
+ │
+ ▼
 AgentExecutor
  │
  ▼
@@ -97,14 +100,17 @@ Providers communicate with different LLM APIs.
 Current:
 
 - Gemini (LiteLLM)
+- Groq (LiteLLM)
+- OpenAI (LiteLLM)
+- Anthropic (LiteLLM)
+- Ollama (LiteLLM)
+- OpenRouter (LiteLLM)
 
 Future:
 
-- OpenAI
-- Anthropic
-- Ollama
-- Groq
-- Others
+- Provider-specific health checks
+- Streaming support
+- Additional hosted/local providers
 
 ---
 
@@ -117,6 +123,12 @@ Stores long-term information for conversations.
 ### Knowledge
 
 Provides Retrieval-Augmented Generation (RAG) support.
+
+Knowledge ingestion returns basic operational metadata:
+
+- document ID
+- indexed chunk count
+- status
 
 ---
 
@@ -148,15 +160,20 @@ Provides secure access to local files and directories.
 - Skill registry
 - Provider abstraction
 - Gemini provider
+- Provider registry with configurable default provider
+- Per-request provider override plumbing
 - Memory system
 - Knowledge system
+- Knowledge ingestion API
+- FastAPI routes for chat, health, providers, and knowledge ingestion
+- Optional API key auth for mutating endpoints
 - Workspace
 - Dependency injection
 - Comprehensive unit tests
 
 ### Metrics
 
-- ✅ 143 Tests Passing
+- ✅ Unit test suite present
 - ✅ Ruff Clean
 
 ---
@@ -169,7 +186,8 @@ Provides secure access to local files and directories.
 - Multiple tool execution
 - MCP support
 - Multi-agent orchestration
-- Additional providers
+- Persisted conversation sessions
+- Real provider health checks
 - Observability & tracing
 - Production deployment
 

@@ -1,5 +1,6 @@
 from typing import Any
 
+from doitall.config.settings import settings
 from doitall.models.tool_definition import ToolDefinition
 from doitall.skills.base import BaseSkill
 from doitall.workspace.workspace import Workspace
@@ -74,6 +75,9 @@ class FilesystemSkill(BaseSkill):
         path: str,
         content: str,
     ) -> bool:
+        if not settings.ENABLE_FILESYSTEM_WRITE_TOOLS:
+            raise PermissionError("Filesystem writes are disabled.")
+
         self._workspace.write_text(
             path,
             content,
@@ -84,6 +88,9 @@ class FilesystemSkill(BaseSkill):
         self,
         path: str,
     ) -> bool:
+        if not settings.ENABLE_FILESYSTEM_WRITE_TOOLS:
+            raise PermissionError("Filesystem deletes are disabled.")
+
         self._workspace.delete(path)
         return True
 

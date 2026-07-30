@@ -8,8 +8,8 @@ class KnowledgeRepository(ABC):
     async def add(
         self,
         document: Document,
-    ) -> None:
-        """Index a document."""
+    ) -> int:
+        """Index a document and return the number of indexed chunks."""
 
     @abstractmethod
     async def search(

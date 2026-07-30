@@ -5,7 +5,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Chat
 # ---------------------------------------------------------------------------
@@ -53,6 +52,7 @@ class IngestResponse(BaseModel):
     """Response body after document ingestion."""
 
     document_id: str
+    chunk_count: int
     status: str = "ingested"
 
 

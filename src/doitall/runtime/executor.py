@@ -61,7 +61,11 @@ class RuntimeExecutor:
         """
         messages = self.prepare(context)
 
-        provider = self._provider_manager.default()
+        provider = (
+            self._provider_manager.get(context.provider)
+            if context.provider
+            else self._provider_manager.default()
+        )
 
         payload: list[dict[str, Any]] = []
 
