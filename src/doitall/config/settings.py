@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # ----------------------------
+    # Memory
+    # ----------------------------
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: str = ""
+    EMBEDDING_MODEL: str = "text-embedding-3-large"
+
+    # ----------------------------
     # AI Providers
     # ----------------------------
     DEFAULT_PROVIDER: str = "gemini"

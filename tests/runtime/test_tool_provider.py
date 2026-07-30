@@ -1,5 +1,7 @@
 from typing import Any
 
+import pytest
+
 from doitall.models.tool_definition import ToolDefinition
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.tool_provider import ToolProvider
@@ -22,7 +24,8 @@ class FakeSkill(BaseSkill):
         return 42
 
 
-def test_populate():
+@pytest.mark.asyncio
+async def test_populate():
     registry = SkillRegistry()
     registry.register(FakeSkill)
 
@@ -30,10 +33,7 @@ def test_populate():
 
     provider = ToolProvider(registry)
 
-    provider.populate(
-        context,
-        "hello",
-    )
+    await provider.populate(context)
 
     assert len(context.tools) == 1
     assert context.tools[0].name == "calculator"

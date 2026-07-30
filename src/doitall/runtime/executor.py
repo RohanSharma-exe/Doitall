@@ -1,3 +1,10 @@
+import json
+
+from doitall.models.message import (
+    AssistantMessage,
+    Message,
+    ToolMessage,
+)
 from doitall.models.provider_response import ProviderResponse
 from doitall.providers.manager import ProviderManager
 from doitall.runtime.context import RuntimeContext
@@ -18,7 +25,7 @@ class RuntimeExecutor:
     def prepare(
         self,
         context: RuntimeContext,
-    ) -> list:
+    ) -> list[Message]:
         return self._prompt_builder.build(context)
 
     async def execute(
@@ -29,12 +36,31 @@ class RuntimeExecutor:
 
         provider = self._provider_manager.default()
 
-        payload = [
-            {
-                "role": message.role,
+        payload: list[dict] = []
+
+        for message in messages:
+            item = {
+                "role": message.role.value,
                 "content": message.content,
             }
-            for message in messages
-        ]
+
+            if isinstance(message, AssistantMessage) and message.tool_calls:
+                item["tool_calls"] = [
+                    {
+                        "id": call.id,
+                        "type": "function",
+                        "function": {
+                            "name": call.name,
+                            "arguments": json.dumps(call.arguments),
+                        },
+                    }
+                    for call in message.tool_calls
+                ]
+
+            if isinstance(message, ToolMessage):
+                item["tool_call_id"] = message.tool_call_id
+                item["name"] = message.name
+
+            payload.append(item)
 
         return await provider.chat(payload, tools=context.tools)

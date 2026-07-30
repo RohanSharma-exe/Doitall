@@ -1,6 +1,7 @@
 from doitall.agent.executor import AgentExecutor
-from doitall.models.message import Message, MessageRole
+from doitall.models.message import AssistantMessage, UserMessage
 from doitall.runtime.context_assembler import ContextAssembler
+from doitall.runtime.memory_pipeline import MemoryPipeline
 from doitall.services.conversation_service import ConversationService
 
 
@@ -10,32 +11,44 @@ class ChatService:
         conversation_service: ConversationService,
         context_assembler: ContextAssembler,
         agent_executor: AgentExecutor,
+        memory_pipeline: MemoryPipeline,
     ) -> None:
         self._conversation_service = conversation_service
         self._context_assembler = context_assembler
         self._agent_executor = agent_executor
+        self._memory_pipeline = memory_pipeline
 
     async def chat(
         self,
         content: str,
     ) -> str:
-        user_message = Message(
-            role=MessageRole.USER,
+        user_message = UserMessage(
             content=content,
         )
 
-        self._conversation_service.add_message(user_message)
+        self._conversation_service.add_message(
+            user_message,
+        )
 
-        context = self._context_assembler.assemble(content)
+        context = await self._context_assembler.assemble(
+            content,
+        )
 
-        response = await self._agent_executor.execute(context)
+        response = await self._agent_executor.execute(
+            context,
+        )
 
-        assistant_message = Message(
-            role=MessageRole.ASSISTANT,
+        assistant_message = AssistantMessage(
             content=response.content,
+            tool_calls=response.tool_calls,
         )
 
         self._conversation_service.add_message(
+            assistant_message,
+        )
+
+        await self._memory_pipeline.process(
+            user_message,
             assistant_message,
         )
 

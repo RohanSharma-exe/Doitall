@@ -1,6 +1,3 @@
-import pytest
-from pydantic import ValidationError
-
 from doitall.models.message import (
     AssistantMessage,
     MessageRole,
@@ -30,11 +27,19 @@ def test_system_message():
 
 
 def test_tool_message():
-    message = ToolMessage(content="Tool executed.")
+    message = ToolMessage(
+        tool_call_id="tool-1",
+        name="calculator",
+        content="Tool executed.",
+    )
 
     assert message.role == MessageRole.TOOL
 
 
-def test_empty_content():
-    with pytest.raises(ValidationError):
-        UserMessage(content="")
+def test_assistant_tool_call_can_have_empty_content():
+    message = AssistantMessage(
+        content="",
+        tool_calls=[],
+    )
+
+    assert message.content == ""

@@ -8,6 +8,7 @@ class BaseProvider(ABC):
     def __init__(self, name: str):
         self.name = name
 
+    @abstractmethod
     async def chat(
         self,
         messages: list[dict[str, str]],

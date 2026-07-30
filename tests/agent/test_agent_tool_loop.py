@@ -1,6 +1,7 @@
 import pytest
 
 from doitall.agent.executor import AgentExecutor
+from doitall.models.message import AssistantMessage, ToolMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall, ToolResult
 from doitall.runtime.context import RuntimeContext
@@ -61,5 +62,17 @@ async def test_agent_executes_tool_loop():
 
     assert runtime.calls == 2
 
-    assert len(context.messages) == 1
-    assert context.messages[0].content == "450"
+    assert len(context.messages) == 2
+
+    assistant = context.messages[0]
+    tool = context.messages[1]
+
+    assert isinstance(assistant, AssistantMessage)
+    assert assistant.content == ""
+    assert len(assistant.tool_calls) == 1
+
+    assert isinstance(tool, ToolMessage)
+    assert tool.content == "450"
+    assert tool.tool_call_id == assistant.tool_calls[0].id
+
+    assert response.content == "450"

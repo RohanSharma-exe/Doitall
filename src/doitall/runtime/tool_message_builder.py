@@ -11,6 +11,8 @@ class ToolMessageBuilder:
     ) -> list[ToolMessage]:
         return [
             ToolMessage(
+                tool_call_id=result.tool_call_id,
+                name=result.name,
                 content=str(result.result),
             )
             for result in results

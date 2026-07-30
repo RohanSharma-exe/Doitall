@@ -1,11 +1,3 @@
-from doitall.core.bootstrap import bootstrap
+from doitall import Doitall
 
-
-class Application:
-    """Main application object."""
-
-    def start(self) -> None:
-        bootstrap()
-
-    def stop(self) -> None:
-        pass
+Application = Doitall

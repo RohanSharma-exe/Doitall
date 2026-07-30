@@ -4,8 +4,11 @@ from doitall.runtime.context import RuntimeContext
 
 
 class ContextProvider(Protocol):
-    def populate(
+    """Enriches a RuntimeContext with additional information."""
+
+    async def populate(
         self,
         context: RuntimeContext,
-        query: str,
-    ) -> None: ...
+    ) -> None:
+        """Populate the runtime context."""
+        ...

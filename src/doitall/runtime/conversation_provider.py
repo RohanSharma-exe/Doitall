@@ -9,9 +9,8 @@ class ConversationProvider:
     ) -> None:
         self._conversation = conversation
 
-    def populate(
+    async def populate(
         self,
         context: RuntimeContext,
-        query: str,
     ) -> None:
         context.messages = self._conversation.messages()

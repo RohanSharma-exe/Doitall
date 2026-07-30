@@ -51,10 +51,17 @@ class VectorKnowledgeRepository(KnowledgeRepository):
         for result in results:
             payload = result["payload"]
 
+            document_id = payload.get("document_id")
+            text = payload.get("text")
+
+            # Skip any stale points that don't match the chunk payload schema
+            if not document_id or not text:
+                continue
+
             documents.append(
                 Document(
-                    id=payload["document_id"],
-                    content=payload["text"],
+                    id=document_id,
+                    content=text,
                     metadata=payload.get("metadata", {}),
                 )
             )

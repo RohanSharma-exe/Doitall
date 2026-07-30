@@ -8,6 +8,7 @@ def test_build():
     messages = builder.build(
         [
             ToolResult(
+                tool_call_id="tool-1",
                 name="calculator",
                 result=42,
             )

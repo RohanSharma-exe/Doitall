@@ -1,11 +1,14 @@
 from unittest.mock import Mock
 
+import pytest
+
 from doitall.knowledge.document import Document
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.knowledge_provider import KnowledgeProvider
 
 
-def test_populate():
+@pytest.mark.asyncio
+async def test_populate():
     repository = Mock()
 
     repository.search.return_value = [
@@ -16,27 +19,39 @@ def test_populate():
 
     provider = KnowledgeProvider(repository)
 
-    context = RuntimeContext()
+    context = RuntimeContext(query="python")
 
-    provider.populate(
-        context,
-        "python",
-    )
+    await provider.populate(context)
 
     assert len(context.knowledge) == 1
     assert context.knowledge[0].content == "Python"
 
 
-def test_repository_called():
+@pytest.mark.asyncio
+async def test_repository_called():
     repository = Mock()
 
     repository.search.return_value = []
 
     provider = KnowledgeProvider(repository)
 
-    provider.populate(
-        RuntimeContext(),
-        "hello",
-    )
+    context = RuntimeContext(query="hello")
 
-    repository.search.assert_called_once_with("hello")
+    await provider.populate(context)
+
+    repository.search.assert_called_once_with(context.query)
+
+
+@pytest.mark.asyncio
+async def test_empty_query_skips_search():
+    """KnowledgeProvider should not call search when query is empty."""
+    repository = Mock()
+
+    provider = KnowledgeProvider(repository)
+
+    context = RuntimeContext(query="")
+
+    await provider.populate(context)
+
+    repository.search.assert_not_called()
+    assert context.knowledge == []

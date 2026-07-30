@@ -1,0 +1,119 @@
+from doitall.agent.agent import Agent
+from doitall.agent.executor import AgentExecutor
+from doitall.agent.manager import AgentManager
+from doitall.knowledge.repository import KnowledgeRepository
+from doitall.memory.manager import MemoryManager
+from doitall.memory.vector_memory_store import VectorMemoryStore
+from doitall.providers.manager import ProviderManager
+from doitall.runtime.context_assembler import ContextAssembler
+from doitall.runtime.conversation_provider import ConversationProvider
+from doitall.runtime.executor import RuntimeExecutor
+from doitall.runtime.knowledge_provider import KnowledgeProvider
+from doitall.runtime.memory_extractor import MemoryExtractor
+from doitall.runtime.memory_filter import MemoryFilter
+from doitall.runtime.memory_pipeline import MemoryPipeline
+from doitall.runtime.memory_provider import MemoryProvider
+from doitall.runtime.memory_scorer import MemoryScorer
+from doitall.runtime.prompt_builder import PromptBuilder
+from doitall.runtime.tool_message_builder import ToolMessageBuilder
+from doitall.runtime.tool_provider import ToolProvider
+from doitall.services.chat_service import ChatService
+from doitall.services.conversation_service import ConversationService
+from doitall.services.registry import container
+from doitall.services.tool_calling_engine import ToolCallingEngine
+from doitall.services.tool_executor import ToolExecutor
+from doitall.skills.manager import SkillManager
+
+
+class RuntimeFactory:
+    """Creates an isolated runtime for one assistant."""
+
+    def create(
+        self,
+        agent: Agent,
+    ) -> ChatService:
+        provider_manager: ProviderManager = container.resolve(
+            "provider_manager",
+        )
+
+        skill_manager: SkillManager = container.resolve(
+            "skill_manager",
+        )
+
+        skill_registry = container.resolve(
+            "skill_registry",
+        )
+
+        vector_memory_store: VectorMemoryStore = container.resolve(
+            "memory_store",
+        )
+
+        knowledge_repository: KnowledgeRepository = container.resolve(
+            "knowledge_repository",
+        )
+
+        memory_manager = MemoryManager(
+            vector_memory_store,
+        )
+
+        conversation = ConversationService()
+
+        agent_manager = AgentManager(
+            agent,
+        )
+
+        prompt_builder = PromptBuilder(
+            agent_manager,
+        )
+
+        runtime = RuntimeExecutor(
+            prompt_builder,
+            provider_manager,
+        )
+
+        tool_executor = ToolExecutor(
+            skill_manager,
+        )
+
+        tool_engine = ToolCallingEngine(
+            tool_executor,
+        )
+
+        tool_message_builder = ToolMessageBuilder()
+
+        context_assembler = ContextAssembler(
+            [
+                ConversationProvider(
+                    conversation,
+                ),
+                MemoryProvider(
+                    memory_manager,
+                ),
+                KnowledgeProvider(
+                    knowledge_repository,
+                ),
+                ToolProvider(
+                    skill_registry,
+                ),
+            ]
+        )
+
+        executor = AgentExecutor(
+            runtime,
+            tool_engine,
+            tool_message_builder,
+        )
+
+        memory_pipeline = MemoryPipeline(
+            manager=memory_manager,
+            extractor=MemoryExtractor(),
+            memory_filter=MemoryFilter(),
+            scorer=MemoryScorer(),
+        )
+
+        return ChatService(
+            conversation_service=conversation,
+            context_assembler=context_assembler,
+            agent_executor=executor,
+            memory_pipeline=memory_pipeline,
+        )

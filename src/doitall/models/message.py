@@ -2,6 +2,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+from doitall.models.tool_call import ToolCall
+
 
 class MessageRole(StrEnum):
     SYSTEM = "system"
@@ -12,7 +14,7 @@ class MessageRole(StrEnum):
 
 class Message(BaseModel):
     role: MessageRole
-    content: str = Field(min_length=1)
+    content: str = ""
 
 
 class SystemMessage(Message):
@@ -26,6 +28,13 @@ class UserMessage(Message):
 class AssistantMessage(Message):
     role: MessageRole = MessageRole.ASSISTANT
 
+    tool_calls: list[ToolCall] = Field(
+        default_factory=list,
+    )
+
 
 class ToolMessage(Message):
     role: MessageRole = MessageRole.TOOL
+
+    tool_call_id: str
+    name: str

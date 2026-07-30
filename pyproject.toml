@@ -3,6 +3,7 @@ name = "doitall"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+license = { text = "Apache-2.0" }
 authors = [
     { name = "ROHAN", email = "rohan.sharma1234987650@gmail.com" }
 ]

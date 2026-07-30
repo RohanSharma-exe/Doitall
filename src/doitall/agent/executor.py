@@ -1,3 +1,4 @@
+from doitall.models.message import AssistantMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.executor import RuntimeExecutor
@@ -24,13 +25,16 @@ class AgentExecutor:
     ) -> ProviderResponse:
         response = await self._runtime.execute(context)
 
-        iterations = 0
+        for iteration in range(self.MAX_TOOL_ITERATIONS):
+            if not response.tool_calls:
+                return response
 
-        while response.tool_calls:
-            if iterations >= self.MAX_TOOL_ITERATIONS:
-                raise RuntimeError("Maximum tool iterations exceeded.")
-
-            iterations += 1
+            context.messages.append(
+                AssistantMessage(
+                    content=response.content,
+                    tool_calls=response.tool_calls,
+                )
+            )
 
             results = await self._tool_engine.execute(response)
 
@@ -38,4 +42,4 @@ class AgentExecutor:
 
             response = await self._runtime.execute(context)
 
-        return response
+        raise RuntimeError("Maximum tool iterations exceeded.")

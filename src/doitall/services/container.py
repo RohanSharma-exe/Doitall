@@ -13,7 +13,7 @@ class ServiceContainer:
         name: str,
         service: Any,
     ) -> None:
-        """Register a service."""
+        """Register a singleton service."""
 
         self._services_by_name[name] = service
         self._services_by_type[type(service)] = service
@@ -22,7 +22,7 @@ class ServiceContainer:
         self,
         name: str,
     ) -> Any:
-        """Resolve by registered name."""
+        """Resolve a service by name."""
 
         if name not in self._services_by_name:
             raise KeyError(f"Service '{name}' is not registered.")
@@ -33,12 +33,8 @@ class ServiceContainer:
         self,
         service_type: type[Any],
     ) -> Any:
-        """Resolve by Python type."""
-
         if service_type not in self._services_by_type:
-            raise KeyError(
-                f"Service '{service_type.__name__}' is not registered.",
-            )
+            raise KeyError(f"Service '{service_type.__name__}' is not registered.")
 
         return self._services_by_type[service_type]
 

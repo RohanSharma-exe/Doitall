@@ -1,8 +1,9 @@
 import typer
 from rich import print
 
+from doitall import Doitall
+from doitall.chat import start_chat
 from doitall.config.settings import settings
-from doitall.core.application import Application
 
 app = typer.Typer(
     name="doitall",
@@ -33,7 +34,13 @@ def doctor() -> None:
 @app.command()
 def start() -> None:
     """Start the application."""
-    Application().start()
+    Doitall().start()
+
+
+@app.command()
+def chat() -> None:
+    """Start an interactive chat session."""
+    start_chat()
 
 
 if __name__ == "__main__":

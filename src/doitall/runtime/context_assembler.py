@@ -7,15 +7,17 @@ class ContextAssembler:
         self,
         providers: list[ContextProvider],
     ) -> None:
-        self._providers = providers
+        self._providers: tuple[ContextProvider, ...] = tuple(providers)
 
-    def assemble(
+    async def assemble(
         self,
         query: str,
     ) -> RuntimeContext:
-        context = RuntimeContext()
+        context = RuntimeContext(
+            query=query,
+        )
 
         for provider in self._providers:
-            provider.populate(context, query)
+            await provider.populate(context)
 
         return context

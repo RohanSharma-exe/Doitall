@@ -12,10 +12,9 @@ class ToolProvider(ContextProvider):
     ) -> None:
         self._registry = registry
 
-    def populate(
+    async def populate(
         self,
         context: RuntimeContext,
-        query: str,
     ) -> None:
         context.tools.extend(
             self._registry.definitions(),

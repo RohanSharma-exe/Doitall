@@ -9,9 +9,11 @@ class KnowledgeProvider:
     ) -> None:
         self._repository = repository
 
-    def populate(
+    async def populate(
         self,
         context: RuntimeContext,
-        query: str,
     ) -> None:
-        context.knowledge = self._repository.search(query)
+        if not context.query:
+            return
+
+        context.knowledge = self._repository.search(context.query)
