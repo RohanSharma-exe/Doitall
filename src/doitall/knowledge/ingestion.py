@@ -3,6 +3,19 @@ from doitall.knowledge.document import Document
 from doitall.knowledge.repository import KnowledgeRepository
 
 
+class IngestionResult:
+    def __init__(
+        self,
+        *,
+        document_id: str,
+        chunk_count: int,
+        status: str = "ingested",
+    ) -> None:
+        self.document_id = document_id
+        self.chunk_count = chunk_count
+        self.status = status
+
+
 class KnowledgeIngestionService:
     def __init__(
         self,
@@ -13,24 +26,30 @@ class KnowledgeIngestionService:
     async def ingest(
         self,
         document: Document,
-    ) -> None:
+    ) -> IngestionResult:
         if not document or not document.content or not document.content.strip():
             raise ValidationError("Document content cannot be empty")
 
-        await self.repository.add(document)
+        chunk_count = await self.repository.add(document)
+
+        return IngestionResult(
+            document_id=document.id,
+            chunk_count=chunk_count,
+        )
 
     async def ingest_many(
         self,
         documents: list[Document],
-    ) -> None:
+    ) -> list[IngestionResult]:
         if not documents:
-            return
+            return []
 
         failed_documents = []
+        results: list[IngestionResult] = []
 
         for document in documents:
             try:
-                await self.ingest(document)
+                results.append(await self.ingest(document))
             except Exception as e:
                 failed_documents.append((document.id if document else "unknown", str(e)))
 
@@ -38,3 +57,5 @@ class KnowledgeIngestionService:
             error_msg = f"Failed to ingest {len(failed_documents)} out of {len(documents)} documents. "
             error_msg += f"Failed document IDs: {[doc_id for doc_id, _ in failed_documents]}"
             raise ProviderError(error_msg)
+
+        return results

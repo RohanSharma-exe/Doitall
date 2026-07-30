@@ -20,7 +20,7 @@ class VectorKnowledgeRepository(KnowledgeRepository):
     async def add(
         self,
         document: Document,
-    ) -> None:
+    ) -> int:
         chunks = self.chunker.chunk(document)
 
         for chunk in chunks:
@@ -33,6 +33,8 @@ class VectorKnowledgeRepository(KnowledgeRepository):
                 vector=vector,
                 payload=payload,
             )
+
+        return len(chunks)
 
     async def search(
         self,
