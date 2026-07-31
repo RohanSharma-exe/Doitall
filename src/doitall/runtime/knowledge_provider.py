@@ -1,8 +1,11 @@
 from doitall.knowledge.repository import KnowledgeRepository
 from doitall.runtime.context import RuntimeContext
+from doitall.runtime.context_provider import ContextProvider
 
 
-class KnowledgeProvider:
+class KnowledgeProvider(ContextProvider):
+    """Adds semantically relevant knowledge chunks to the runtime context."""
+
     def __init__(
         self,
         repository: KnowledgeRepository,
@@ -16,4 +19,7 @@ class KnowledgeProvider:
         if not context.query:
             return
 
-        context.knowledge = await self._repository.search(context.query)
+        context.knowledge.extend(
+            await self._repository.search(context.query)
+        )
+

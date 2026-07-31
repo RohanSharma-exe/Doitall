@@ -1,4 +1,4 @@
-from pathlib import Path
+
 
 from loguru import logger
 from qdrant_client import QdrantClient
@@ -92,7 +92,15 @@ def bootstrap() -> None:
     from doitall.providers.registry import register_providers
 
     register_providers(provider_manager)
-    provider_manager.set_default(settings.DEFAULT_PROVIDER)
+
+    # Only set default if it was actually registered (key might be missing).
+    if provider_manager.exists(settings.DEFAULT_PROVIDER):
+        provider_manager.set_default(settings.DEFAULT_PROVIDER)
+    elif provider_manager.names():
+        logger.warning(
+            f"Configured DEFAULT_PROVIDER='{settings.DEFAULT_PROVIDER}' was not registered "
+            f"(no API key?). Using first available: '{provider_manager.names()[0]}'."
+        )
 
     skill_registry = SkillRegistry()
     skill_manager = SkillManager(
@@ -102,7 +110,7 @@ def bootstrap() -> None:
 
     register_builtin_skills(skill_registry)
 
-    workspace = Workspace(Path.cwd())
+    workspace = Workspace(settings.BASE_DIR)
 
     # --- Register all services in the DI container ---
     container.register("settings", settings)

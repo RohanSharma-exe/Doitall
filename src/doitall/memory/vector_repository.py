@@ -9,6 +9,10 @@ class VectorRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_all(self, limit: int = 10000) -> list[Memory]:
+        """Return all stored memories without requiring an embedding vector."""
+
+    @abstractmethod
     async def search(
         self,
         query: str,

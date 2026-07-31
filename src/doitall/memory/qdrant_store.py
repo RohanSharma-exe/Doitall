@@ -80,6 +80,25 @@ class QdrantStore(VectorStore):
             for point in results
         ]
 
+    def scroll_all(
+        self,
+        limit: int = 10000,
+    ) -> list[dict[str, Any]]:
+        """Return all stored points using Qdrant scroll (no embedding needed)."""
+        points, _next = self.client.scroll(
+            collection_name=self.collection_name,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        return [
+            {
+                "id": str(point.id),
+                "payload": point.payload,
+            }
+            for point in points
+        ]
+
     def delete(
         self,
         point_id: str,
@@ -102,3 +121,4 @@ class QdrantStore(VectorStore):
         )
 
         self._ensure_collection()
+

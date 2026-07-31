@@ -1,3 +1,4 @@
+from doitall.core.exceptions import SkillError
 from doitall.models.tool_definition import ToolDefinition
 from doitall.skills.base import BaseSkill
 
@@ -27,6 +28,10 @@ class SkillRegistry:
         self,
         name: str,
     ) -> type[BaseSkill]:
+        if name not in self._skills:
+            raise SkillError(
+                f"Unknown skill: '{name}'. Available skills: {sorted(self._skills)}"
+            )
         return self._skills[name]
 
     def exists(
@@ -57,3 +62,4 @@ class SkillRegistry:
 
     def clear(self) -> None:
         self._skills.clear()
+

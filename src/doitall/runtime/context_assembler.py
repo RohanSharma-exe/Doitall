@@ -39,7 +39,7 @@ class ContextAssembler:
             provider=provider,
         )
 
-        for provider in self._providers:
-            await provider.populate(context)
+        for context_provider in self._providers:
+            await context_provider.populate(context)
 
         return context

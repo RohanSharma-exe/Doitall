@@ -32,6 +32,17 @@ class QdrantRepository(VectorRepository):
             payload=payload,
         )
 
+    async def get_all(self, limit: int = 10000) -> list[Memory]:
+        """Return all stored memories using scroll (no embedding needed)."""
+        results = self.vector_store.scroll_all(limit=limit)
+        return [
+            MemorySerializer.from_payload(
+                memory_id=str(result["id"]),
+                payload=result["payload"],
+            )
+            for result in results
+        ]
+
     async def search(
         self,
         query: str,
@@ -63,3 +74,4 @@ class QdrantRepository(VectorRepository):
 
     def count(self) -> int:
         return self.vector_store.count()
+

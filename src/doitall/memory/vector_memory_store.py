@@ -17,10 +17,8 @@ class VectorMemoryStore(MemoryStore):
         await self.repository.save(memory)
 
     async def get_all(self) -> list[Memory]:
-        return await self.repository.search(
-            query="",
-            limit=10000,
-        )
+        """Return all memories using scroll — no embedding call needed."""
+        return await self.repository.get_all()
 
     async def search(
         self,
@@ -43,3 +41,4 @@ class VectorMemoryStore(MemoryStore):
 
     def count(self) -> int:
         return self.repository.count()
+

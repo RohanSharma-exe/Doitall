@@ -1,3 +1,5 @@
+from loguru import logger
+
 from doitall.models.message import AssistantMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.runtime.context import RuntimeContext
@@ -25,7 +27,7 @@ class AgentExecutor:
     ) -> ProviderResponse:
         response = await self._runtime.execute(context)
 
-        for _iteration in range(self.MAX_TOOL_ITERATIONS):
+        for iteration in range(self.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
                 return response
 
@@ -42,4 +44,11 @@ class AgentExecutor:
 
             response = await self._runtime.execute(context)
 
-        raise RuntimeError("Maximum tool iterations exceeded.")
+        # Max iterations reached — return the last response rather than crashing.
+        # Log a warning so the operator knows this happened.
+        logger.warning(
+            f"AgentExecutor reached MAX_TOOL_ITERATIONS={self.MAX_TOOL_ITERATIONS}. "
+            "Returning last partial response."
+        )
+        return response
+

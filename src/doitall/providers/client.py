@@ -8,6 +8,7 @@ from litellm import (
     acompletion,
 )
 
+from doitall.config.settings import settings
 from doitall.providers.exceptions import (
     ProviderAuthenticationError,
     ProviderRateLimitError,
@@ -48,6 +49,7 @@ class LiteLLMClient:
             return await acompletion(
                 model=model,
                 messages=messages,
+                timeout=settings.LLM_TIMEOUT_SECONDS,
                 **kwargs,
             )
 
@@ -65,3 +67,4 @@ class LiteLLMClient:
 
         except Exception as e:
             raise ProviderResponseError(str(e)) from e
+

@@ -78,12 +78,19 @@ class Settings(BaseSettings):
     OPENROUTER_MODEL: str = "openrouter/anthropic/claude-3.5-sonnet"
 
     # ----------------------------
+    # LLM call timeout
+    # ----------------------------
+    LLM_TIMEOUT_SECONDS: int = 30
+    """Seconds before an LLM completion call is aborted. Set higher for slow models."""
+
+    # ----------------------------
     # Paths
     # ----------------------------
     BASE_DIR: Path = BASE_DIR
     DATA_DIR: Path = BASE_DIR / "data"
     STORAGE_DIR: Path = BASE_DIR / "storage"
     LOG_DIR: Path = BASE_DIR / "logs"
+
 
 
 @lru_cache
