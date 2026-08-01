@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from doitall.memory.vector_memory_store import VectorMemoryStore
 from doitall.models.memory import Memory

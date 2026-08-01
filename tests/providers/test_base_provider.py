@@ -1,7 +1,7 @@
 import pytest
 
-from doitall.providers.base import BaseProvider
 from doitall.models.provider_response import ProviderResponse
+from doitall.providers.base import BaseProvider
 
 
 class ConcreteProvider(BaseProvider):

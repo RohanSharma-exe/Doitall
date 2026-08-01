@@ -13,4 +13,4 @@ class ConversationProvider:
         self,
         context: RuntimeContext,
     ) -> None:
-        context.messages = self._conversation.messages()
+        context.messages = self._conversation.context_messages()

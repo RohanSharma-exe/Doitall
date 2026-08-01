@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 from doitall.memory.qdrant_repository import QdrantRepository
 from doitall.models.memory import Memory

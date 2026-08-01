@@ -45,7 +45,38 @@ class GroqProvider(BaseProvider):
             tool_calls=self._parse_tool_calls(message),
             finish_reason=response.choices[0].finish_reason,
             model=response.model,
+            usage_tokens=self._parse_usage(response),
         )
+
+    async def stream(
+        self,
+        messages: list[dict[str, str]],
+        **kwargs: Any,
+    ):
+        tools = kwargs.pop("tools", [])
+        if tools:
+            kwargs["tools"] = self._convert_tools(tools)
+        async for chunk in self.client.stream(
+            model=settings.GROQ_MODEL,
+            messages=messages,
+            **kwargs,
+        ):
+            yield chunk
+
+    def _parse_usage(self, response: Any) -> dict[str, int]:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return {}
+        result: dict[str, int] = {}
+        for source, target in (
+            ("prompt_tokens", "prompt"),
+            ("completion_tokens", "completion"),
+            ("total_tokens", "total"),
+        ):
+            value = getattr(usage, source, None)
+            if value is not None:
+                result[target] = int(value)
+        return result
 
     async def embedding(
         self,

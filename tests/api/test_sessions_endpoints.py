@@ -19,9 +19,7 @@ from sqlmodel import Session as DBSession
 from sqlmodel import SQLModel, create_engine
 
 import doitall.database.models  # noqa: F401 — registers table metadata
-
 from doitall.database.session_repository import SessionRepository
-
 
 # ---------------------------------------------------------------------------
 # Helpers
