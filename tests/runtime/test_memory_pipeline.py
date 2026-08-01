@@ -32,7 +32,7 @@ async def test_pipeline():
     memories = await store.get_all()
 
     assert len(memories) == 1
-    assert memories[0].content == ("User: Hello\nAssistant: Hi")
+    assert memories[0].content == ("User preference/fact: Hello\nAssistant outcome: Hi")
     # The scorer now calculates importance based on content
     assert memories[0].importance >= 0.0
     assert memories[0].importance <= 1.0

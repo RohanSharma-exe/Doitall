@@ -11,7 +11,7 @@ def test_extract():
     )
 
     assert len(memories) == 1
-    assert memories[0].content == ("User: Hello\nAssistant: Hi")
+    assert memories[0].content == ("User preference/fact: Hello\nAssistant outcome: Hi")
 
 
 def test_empty():
@@ -23,3 +23,17 @@ def test_empty():
     )
 
     assert memories == []
+
+
+def test_extract_compacts_whitespace():
+    extractor = MemoryExtractor()
+
+    memories = extractor.extract(
+        UserMessage(content="  likes   concise\nanswers  "),
+        AssistantMessage(content="  noted   preference  "),
+    )
+
+    assert memories[0].content == (
+        "User preference/fact: likes concise answers\n"
+        "Assistant outcome: noted preference"
+    )
