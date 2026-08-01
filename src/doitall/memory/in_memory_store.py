@@ -12,8 +12,8 @@ class InMemoryStore(MemoryStore):
     async def get_all(self) -> list[Memory]:
         return self._memories.copy()
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         self._memories.clear()
 
-    def count(self) -> int:
+    async def count(self) -> int:
         return len(self._memories)

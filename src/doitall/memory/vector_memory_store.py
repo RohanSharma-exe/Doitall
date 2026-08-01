@@ -30,15 +30,14 @@ class VectorMemoryStore(MemoryStore):
             limit=limit,
         )
 
-    def delete(
+    async def delete(
         self,
         memory_id: str,
     ) -> None:
-        self.repository.delete(memory_id)
+        await self.repository.delete(memory_id)
 
-    def clear(self) -> None:
-        self.repository.clear()
+    async def clear(self) -> None:
+        await self.repository.clear()
 
-    def count(self) -> int:
-        return self.repository.count()
-
+    async def count(self) -> int:
+        return await self.repository.count()

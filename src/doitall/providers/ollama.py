@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+import httpx
+
 from doitall.config.settings import settings
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall
@@ -55,7 +57,13 @@ class OllamaProvider(BaseProvider):
         raise NotImplementedError
 
     async def health_check(self) -> bool:
-        return True
+        """Check that the Ollama daemon is reachable by hitting /api/tags."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
+                return resp.status_code == 200
+        except Exception:
+            return False
 
     def _convert_tools(
         self,

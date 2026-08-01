@@ -67,8 +67,28 @@ async def test_chat_content_extracted():
 
 @pytest.mark.asyncio
 async def test_health_check_returns_true():
+    """health_check returns True when the LiteLLM client succeeds."""
     provider = GroqProvider()
-    assert await provider.health_check() is True
+    with patch.object(
+        provider.client,
+        "chat",
+        new_callable=AsyncMock,
+        return_value=_make_fake_litellm_response(),
+    ):
+        assert await provider.health_check() is True
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_error():
+    """health_check returns False when the LiteLLM client raises."""
+    provider = GroqProvider()
+    with patch.object(
+        provider.client,
+        "chat",
+        new_callable=AsyncMock,
+        side_effect=Exception("auth error"),
+    ):
+        assert await provider.health_check() is False
 
 
 def test_convert_tools():

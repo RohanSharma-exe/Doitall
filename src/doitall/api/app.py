@@ -17,7 +17,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from doitall.config.settings import settings
-from doitall.core.bootstrap import bootstrap, cleanup
+from doitall.core.bootstrap import async_bootstrap, bootstrap, cleanup
 from doitall.core.exceptions import DoitallError
 
 from doitall.api.routes import chat, health, knowledge, providers
@@ -32,7 +32,8 @@ from doitall.api.routes import chat, health, knowledge, providers
 async def lifespan(app: FastAPI):
     """Bootstrap the framework on startup and clean up on shutdown."""
     logger.info("Starting Doitall API…")
-    bootstrap()
+    bootstrap()            # sync: wire all services into the DI container
+    await async_bootstrap()  # async: create Qdrant collections on running loop
     yield
     logger.info("Shutting down Doitall API…")
     cleanup()
@@ -60,10 +61,14 @@ def create_app() -> FastAPI:
     )
 
     # --- CORS ---
+    # `allow_credentials=True` with `allow_origins=["*"]` is invalid per the
+    # CORS spec and causes browsers to reject preflight responses.
+    # We only enable credentials when the caller has configured explicit origins.
+    _allow_credentials = "*" not in settings.CORS_ORIGINS
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=_allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

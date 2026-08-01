@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -8,11 +8,23 @@ from doitall.knowledge.vector_repository import VectorKnowledgeRepository
 from doitall.serialization.chunk_serializer import ChunkSerializer
 
 
+def _make_async_vector_store() -> Mock:
+    """Return a Mock whose async VectorStore methods are all AsyncMock."""
+    store = Mock()
+    store.upsert = AsyncMock()
+    store.search = AsyncMock(return_value=[])
+    store.scroll_all = AsyncMock(return_value=[])
+    store.delete = AsyncMock()
+    store.count = AsyncMock(return_value=0)
+    store.clear = AsyncMock()
+    return store
+
+
 @pytest.mark.asyncio
 async def test_add_document():
     chunker = Mock()
     embedding_manager = Mock()
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
     chunk = Mock()
     chunk.id = "chunk-1"
@@ -22,7 +34,6 @@ async def test_add_document():
     chunk.metadata = {}
 
     chunker.chunk.return_value = [chunk]
-
     embedding_manager.embed = AsyncMock(return_value=[0.1, 0.2])
 
     repository = VectorKnowledgeRepository(
@@ -45,15 +56,16 @@ def test_repository_creation():
     repository = VectorKnowledgeRepository(
         chunker=SimpleChunker(),
         embedding_manager=Mock(),
-        vector_store=Mock(),
+        vector_store=_make_async_vector_store(),
     )
 
     assert repository is not None
 
 
-def test_repository_count():
-    vector_store = Mock()
-    vector_store.count.return_value = 10
+@pytest.mark.asyncio
+async def test_repository_count():
+    vector_store = _make_async_vector_store()
+    vector_store.count = AsyncMock(return_value=10)
 
     repository = VectorKnowledgeRepository(
         chunker=Mock(),
@@ -61,14 +73,14 @@ def test_repository_count():
         vector_store=vector_store,
     )
 
-    assert repository.count() == 10
-
+    assert await repository.count() == 10
     vector_store.count.assert_called_once()
 
 
-def test_count():
-    vector_store = Mock()
-    vector_store.count.return_value = 42
+@pytest.mark.asyncio
+async def test_count():
+    vector_store = _make_async_vector_store()
+    vector_store.count = AsyncMock(return_value=42)
 
     repository = VectorKnowledgeRepository(
         chunker=SimpleChunker(),
@@ -76,11 +88,12 @@ def test_count():
         vector_store=vector_store,
     )
 
-    assert repository.count() == 42
+    assert await repository.count() == 42
 
 
-def test_clear():
-    vector_store = Mock()
+@pytest.mark.asyncio
+async def test_clear():
+    vector_store = _make_async_vector_store()
 
     repository = VectorKnowledgeRepository(
         chunker=SimpleChunker(),
@@ -88,7 +101,7 @@ def test_clear():
         vector_store=vector_store,
     )
 
-    repository.clear()
+    await repository.clear()
 
     vector_store.clear.assert_called_once()
 
@@ -97,19 +110,21 @@ def test_clear():
 async def test_search():
     chunker = Mock()
     embedding_manager = Mock()
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
     embedding_manager.embed = AsyncMock(return_value=[1.0])
 
-    vector_store.search.return_value = [
-        {
-            "payload": {
-                "document_id": "doc1",
-                "text": "Hello World",
-                "metadata": {},
+    vector_store.search = AsyncMock(
+        return_value=[
+            {
+                "payload": {
+                    "document_id": "doc1",
+                    "text": "Hello World",
+                    "metadata": {},
+                }
             }
-        }
-    ]
+        ]
+    )
 
     repository = VectorKnowledgeRepository(
         chunker=chunker,
@@ -128,7 +143,7 @@ async def test_search():
 async def test_add_multiple_chunks():
     chunker = Mock()
     embedding_manager = Mock()
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
     chunk1 = Mock()
     chunk1.id = "1"
@@ -145,7 +160,6 @@ async def test_add_multiple_chunks():
     chunk2.metadata = {}
 
     chunker.chunk.return_value = [chunk1, chunk2]
-
     embedding_manager.embed = AsyncMock(side_effect=[[0.1], [0.2]])
 
     repository = VectorKnowledgeRepository(
@@ -162,10 +176,10 @@ async def test_add_multiple_chunks():
 @pytest.mark.asyncio
 async def test_search_returns_empty():
     embedding_manager = Mock()
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
     embedding_manager.embed = AsyncMock(return_value=[1.0])
-    vector_store.search.return_value = []
+    vector_store.search = AsyncMock(return_value=[])
 
     repository = VectorKnowledgeRepository(
         chunker=Mock(),

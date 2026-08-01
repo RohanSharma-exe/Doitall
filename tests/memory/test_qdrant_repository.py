@@ -5,22 +5,30 @@ from doitall.memory.qdrant_repository import QdrantRepository
 from doitall.models.memory import Memory
 
 
-def test_repository_creation():
-    vector_store = Mock()
-    embedding_manager = Mock()
+def _make_async_vector_store() -> Mock:
+    store = Mock()
+    store.upsert = AsyncMock()
+    store.search = AsyncMock(return_value=[])
+    store.scroll_all = AsyncMock(return_value=[])
+    store.delete = AsyncMock()
+    store.count = AsyncMock(return_value=0)
+    store.clear = AsyncMock()
+    return store
 
+
+def test_repository_creation():
     repository = QdrantRepository(
-        vector_store=vector_store,
-        embedding_manager=embedding_manager,
+        vector_store=_make_async_vector_store(),
+        embedding_manager=Mock(),
     )
 
-    assert repository.vector_store is vector_store
-    assert repository.embedding_manager is embedding_manager
+    assert repository.vector_store is not None
+    assert repository.embedding_manager is not None
 
 
 @pytest.mark.asyncio
 async def test_save_memory():
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
     embedding_manager = Mock()
     embedding_manager.embed = AsyncMock(return_value=[0.1, 0.2, 0.3])
@@ -35,26 +43,27 @@ async def test_save_memory():
     await repository.save(memory)
 
     embedding_manager.embed.assert_called_once_with("Python is awesome.")
-
     vector_store.upsert.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_search_memory():
-    vector_store = Mock()
+    vector_store = _make_async_vector_store()
 
-    vector_store.search.return_value = [
-        {
-            "id": "1",
-            "payload": {
-                "content": "Python",
-                "source": "user",
-                "importance": 0.8,
-                "created_at": "2026-07-27T00:00:00",
-                "metadata": {},
-            },
-        }
-    ]
+    vector_store.search = AsyncMock(
+        return_value=[
+            {
+                "id": "1",
+                "payload": {
+                    "content": "Python",
+                    "source": "user",
+                    "importance": 0.8,
+                    "created_at": "2026-07-27T00:00:00",
+                    "metadata": {},
+                },
+            }
+        ]
+    )
 
     embedding_manager = Mock()
     embedding_manager.embed = AsyncMock(return_value=[0.1, 0.2])

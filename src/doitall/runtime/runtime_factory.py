@@ -31,78 +31,39 @@ class RuntimeFactory:
     def create(
         self,
         agent: Agent,
+        conversation_service: ConversationService | None = None,
     ) -> ChatService:
-        provider_manager: ProviderManager = container.resolve(
-            "provider_manager",
-        )
-
-        skill_manager: SkillManager = container.resolve(
-            "skill_manager",
-        )
-
-        skill_registry = container.resolve(
-            "skill_registry",
-        )
-
-        vector_memory_store: VectorMemoryStore = container.resolve(
-            "memory_store",
-        )
-
+        provider_manager: ProviderManager = container.resolve("provider_manager")
+        skill_manager: SkillManager = container.resolve("skill_manager")
+        skill_registry = container.resolve("skill_registry")
+        vector_memory_store: VectorMemoryStore = container.resolve("memory_store")
         knowledge_repository: KnowledgeRepository = container.resolve(
-            "knowledge_repository",
+            "knowledge_repository"
         )
 
-        memory_manager = MemoryManager(
-            vector_memory_store,
-        )
+        memory_manager = MemoryManager(vector_memory_store)
 
-        conversation = ConversationService()
+        # Use the provided conversation_service (DB-backed) or create a
+        # fresh in-memory one for one-shot / test usage.
+        conversation = conversation_service or ConversationService()
 
-        agent_manager = AgentManager(
-            agent,
-        )
-
-        prompt_builder = PromptBuilder(
-            agent_manager,
-        )
-
-        runtime = RuntimeExecutor(
-            prompt_builder,
-            provider_manager,
-        )
-
-        tool_executor = ToolExecutor(
-            skill_manager,
-        )
-
-        tool_engine = ToolCallingEngine(
-            tool_executor,
-        )
-
+        agent_manager = AgentManager(agent)
+        prompt_builder = PromptBuilder(agent_manager)
+        runtime = RuntimeExecutor(prompt_builder, provider_manager)
+        tool_executor = ToolExecutor(skill_manager)
+        tool_engine = ToolCallingEngine(tool_executor)
         tool_message_builder = ToolMessageBuilder()
 
         context_assembler = ContextAssembler(
             [
-                ConversationProvider(
-                    conversation,
-                ),
-                MemoryProvider(
-                    memory_manager,
-                ),
-                KnowledgeProvider(
-                    knowledge_repository,
-                ),
-                ToolProvider(
-                    skill_registry,
-                ),
+                ConversationProvider(conversation),
+                MemoryProvider(memory_manager),
+                KnowledgeProvider(knowledge_repository),
+                ToolProvider(skill_registry),
             ]
         )
 
-        executor = AgentExecutor(
-            runtime,
-            tool_engine,
-            tool_message_builder,
-        )
+        executor = AgentExecutor(runtime, tool_engine, tool_message_builder)
 
         memory_pipeline = MemoryPipeline(
             manager=memory_manager,

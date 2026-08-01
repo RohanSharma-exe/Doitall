@@ -86,8 +86,29 @@ async def test_chat_uses_settings_model():
 
 @pytest.mark.asyncio
 async def test_health_check_returns_true():
+    """health_check returns True when Ollama /api/tags responds 200."""
     provider = OllamaProvider()
-    assert await provider.health_check() is True
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=mock_resp)
+    # httpx is a top-level import in ollama.py — patch via the module attribute
+    with patch("doitall.providers.ollama.httpx.AsyncClient", return_value=mock_client):
+        assert await provider.health_check() is True
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_error():
+    """health_check returns False when Ollama daemon is unreachable."""
+    provider = OllamaProvider()
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(side_effect=Exception("connection refused"))
+    with patch("doitall.providers.ollama.httpx.AsyncClient", return_value=mock_client):
+        assert await provider.health_check() is False
 
 
 def test_convert_tools():

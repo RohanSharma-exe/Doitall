@@ -1,6 +1,6 @@
 from typing import Any
 
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from doitall.config.settings import settings
@@ -13,9 +13,15 @@ from doitall.memory.vector_store import VectorStore
 
 
 class QdrantStore(VectorStore):
+    """Async Qdrant-backed vector store.
+
+    Uses ``AsyncQdrantClient`` so every network call yields control back
+    to the event loop instead of blocking the thread.
+    """
+
     def __init__(
         self,
-        client: QdrantClient,
+        client: AsyncQdrantClient,
         collection_name: str = DEFAULT_COLLECTION_NAME,
         vector_size: int | None = None,
     ) -> None:
@@ -24,16 +30,18 @@ class QdrantStore(VectorStore):
         self.vector_size = vector_size or get_vector_size_for_model(
             settings.EMBEDDING_MODEL
         )
+        # NOTE: collection creation is deferred to an explicit async
+        # ``ensure_collection()`` call during bootstrap because __init__
+        # cannot be async.
 
-        self._ensure_collection()
-
-    def _ensure_collection(self) -> None:
-        collections = self.client.get_collections().collections
+    async def ensure_collection(self) -> None:
+        """Create the Qdrant collection if it does not already exist."""
+        collections = (await self.client.get_collections()).collections
 
         if any(collection.name == self.collection_name for collection in collections):
             return
 
-        self.client.create_collection(
+        await self.client.create_collection(
             collection_name=self.collection_name,
             vectors_config=VectorParams(
                 size=self.vector_size,
@@ -41,13 +49,13 @@ class QdrantStore(VectorStore):
             ),
         )
 
-    def upsert(
+    async def upsert(
         self,
         point_id: str,
         vector: list[float],
         payload: dict[str, Any],
     ) -> None:
-        self.client.upsert(
+        await self.client.upsert(
             collection_name=self.collection_name,
             wait=True,
             points=[
@@ -59,16 +67,18 @@ class QdrantStore(VectorStore):
             ],
         )
 
-    def search(
+    async def search(
         self,
         vector: list[float],
         limit: int = 5,
     ) -> list[dict[str, Any]]:
-        results = self.client.query_points(
-            collection_name=self.collection_name,
-            query=vector,
-            limit=limit,
-            with_payload=True,
+        results = (
+            await self.client.query_points(
+                collection_name=self.collection_name,
+                query=vector,
+                limit=limit,
+                with_payload=True,
+            )
         ).points
 
         return [
@@ -80,12 +90,12 @@ class QdrantStore(VectorStore):
             for point in results
         ]
 
-    def scroll_all(
+    async def scroll_all(
         self,
         limit: int = 10000,
     ) -> list[dict[str, Any]]:
         """Return all stored points using Qdrant scroll (no embedding needed)."""
-        points, _next = self.client.scroll(
+        points, _next = await self.client.scroll(
             collection_name=self.collection_name,
             limit=limit,
             with_payload=True,
@@ -99,26 +109,23 @@ class QdrantStore(VectorStore):
             for point in points
         ]
 
-    def delete(
+    async def delete(
         self,
         point_id: str,
     ) -> None:
-        self.client.delete(
+        await self.client.delete(
             collection_name=self.collection_name,
             points_selector=[point_id],
         )
 
-    def count(self) -> int:
-        info = self.client.get_collection(
+    async def count(self) -> int:
+        info = await self.client.get_collection(
             self.collection_name,
         )
-
         return info.points_count or 0
 
-    def clear(self) -> None:
-        self.client.delete_collection(
+    async def clear(self) -> None:
+        await self.client.delete_collection(
             self.collection_name,
         )
-
-        self._ensure_collection()
-
+        await self.ensure_collection()

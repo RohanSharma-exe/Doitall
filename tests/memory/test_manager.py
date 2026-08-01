@@ -78,9 +78,10 @@ async def test_all_returns_copy():
     assert len(await manager.all()) == 1
 
 
-def test_count_zero_initially():
+@pytest.mark.asyncio
+async def test_count_zero_initially():
     manager = _manager()
-    assert manager.count() == 0
+    assert await manager.count() == 0
 
 
 @pytest.mark.asyncio
@@ -88,12 +89,12 @@ async def test_count_increments():
     manager = _manager()
     await manager.add(Memory(content="One"))
     await manager.add(Memory(content="Two"))
-    assert manager.count() == 2
+    assert await manager.count() == 2
 
 
 @pytest.mark.asyncio
 async def test_clear_empties_store():
     manager = _manager()
     await manager.add(Memory(content="To be cleared"))
-    manager.clear()
-    assert manager.count() == 0
+    await manager.clear()
+    assert await manager.count() == 0

@@ -55,7 +55,16 @@ class AnthropicProvider(BaseProvider):
         raise NotImplementedError
 
     async def health_check(self) -> bool:
-        return True
+        """Validate connectivity by making a minimal 1-token completion call."""
+        try:
+            await self.client.chat(
+                model=settings.ANTHROPIC_MODEL,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+            )
+            return True
+        except Exception:
+            return False
 
     def _convert_tools(
         self,

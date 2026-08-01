@@ -53,18 +53,18 @@ class MemoryManager:
         except Exception as e:
             raise ProviderError(f"Failed to search memories: {e}") from e
 
-    def clear(
+    async def clear(
         self,
     ) -> None:
         try:
-            self._store.clear()
+            await self._store.clear()
         except Exception as e:
             raise ProviderError(f"Failed to clear memories: {e}") from e
 
-    def count(
+    async def count(
         self,
     ) -> int:
         try:
-            return self._store.count()
+            return await self._store.count()
         except Exception as e:
             raise ProviderError(f"Failed to count memories: {e}") from e

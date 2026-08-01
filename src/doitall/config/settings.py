@@ -31,6 +31,17 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     API_KEY: str = ""
 
+    # Allowed CORS origins. In development the default permits localhost
+    # frontends. In production set this to your actual frontend origin(s),
+    # e.g. CORS_ORIGINS=["https://app.example.com"].
+    # NOTE: do NOT use ["*"] together with credentials — browsers will reject it.
+    CORS_ORIGINS: list[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8000", "http://localhost:5173"]
+    )
+
+    # Seconds of inactivity before an in-memory chat session is evicted.
+    SESSION_TTL_SECONDS: int = 3600
+
     # ----------------------------
     # Database
     # ----------------------------

@@ -1,11 +1,11 @@
-
-
 from loguru import logger
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 
 from doitall.config.logging import configure_logging
 from doitall.config.settings import settings
+import doitall.database.models  # noqa: F401 — registers SQLModel table metadata
 from doitall.database.session import engine, init_db
+from doitall.database.session_repository import SessionRepository
 from doitall.embeddings.manager import EmbeddingManager
 from doitall.knowledge.ingestion import KnowledgeIngestionService
 from doitall.knowledge.simple_chunker import SimpleChunker
@@ -25,7 +25,13 @@ _bootstrap_has_run = False
 
 
 def bootstrap() -> None:
-    """Initialize the application."""
+    """Synchronous bootstrap — wires all services into the DI container.
+
+    This must be called before the first request is handled.  It does NOT
+    perform any async I/O.  Async initialisation (Qdrant collection creation)
+    is handled by ``async_bootstrap()``, which the FastAPI lifespan awaits
+    immediately after calling this function.
+    """
 
     global _bootstrap_has_run
 
@@ -39,6 +45,12 @@ def bootstrap() -> None:
 
     configure_logging()
 
+    if settings.ENVIRONMENT == "production" and settings.DEBUG:
+        logger.warning(
+            "DEBUG=True is set in a production environment. "
+            "This will log SQL queries and stack traces. Set DEBUG=False."
+        )
+
     # Initialize database
     init_db()
 
@@ -48,9 +60,8 @@ def bootstrap() -> None:
         settings.EMBEDDING_MODEL,
     )
 
-    # Build storage stack in dependency order:
-    # client → store → repositories → higher-level stores
-    qdrant_client = QdrantClient(
+    # Build async Qdrant client — all I/O goes through the event loop.
+    qdrant_client = AsyncQdrantClient(
         url=settings.QDRANT_URL,
         api_key=settings.QDRANT_API_KEY or None,
     )
@@ -127,10 +138,25 @@ def bootstrap() -> None:
     container.register("skill_registry", skill_registry)
     container.register("skill_manager", skill_manager)
     container.register("workspace", workspace)
+    container.register("session_repository", SessionRepository())
 
     logger.info(f"Starting {settings.APP_NAME}")
     logger.info(f"Version: {settings.APP_VERSION}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
+
+
+async def async_bootstrap() -> None:
+    """Async initialisation — must be awaited inside the running event loop.
+
+    Creates Qdrant collections if they do not already exist.  Call this from
+    the FastAPI lifespan *after* ``bootstrap()`` has returned.
+    """
+    qdrant_store: QdrantStore = container.resolve("qdrant_store")
+    knowledge_qdrant_store: QdrantStore = container.resolve("knowledge_qdrant_store")
+
+    await qdrant_store.ensure_collection()
+    await knowledge_qdrant_store.ensure_collection()
+    logger.info("Qdrant collections ready.")
 
 
 def cleanup() -> None:
@@ -144,20 +170,25 @@ def cleanup() -> None:
     logger.info("Cleaning up resources...")
 
     try:
-        # Close Qdrant client
+        # Close async Qdrant client
         if container.has("qdrant_client"):
-            qdrant_client = container.resolve("qdrant_client")
+            qdrant_client: AsyncQdrantClient = container.resolve("qdrant_client")
+            import asyncio
             try:
-                qdrant_client.close()
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(qdrant_client.close())
+                else:
+                    loop.run_until_complete(qdrant_client.close())
                 logger.info("Qdrant client closed")
             except Exception as e:
                 logger.warning(f"Failed to close Qdrant client: {e}")
 
         # Dispose database engine
         if container.has("engine"):
-            engine = container.resolve("engine")
+            db_engine = container.resolve("engine")
             try:
-                engine.dispose()
+                db_engine.dispose()
                 logger.info("Database engine disposed")
             except Exception as e:
                 logger.warning(f"Failed to dispose database engine: {e}")

@@ -16,11 +16,11 @@ class MemoryStore(ABC):
         pass
 
     @abstractmethod
-    def clear(self) -> None:
+    async def clear(self) -> None:
         pass
 
     @abstractmethod
-    def count(self) -> int:
+    async def count(self) -> int:
         pass
 
     async def search(
@@ -30,7 +30,7 @@ class MemoryStore(ABC):
     ) -> list[Memory]:
         raise NotImplementedError
 
-    def delete(
+    async def delete(
         self,
         memory_id: str,
     ) -> None:

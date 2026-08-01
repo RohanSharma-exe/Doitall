@@ -31,7 +31,7 @@ async def test_get_all_returns_copy(store: InMemoryStore) -> None:
 
     memories.append(Memory(content="Another"))
 
-    assert store.count() == 1
+    assert await store.count() == 1
     assert len(await store.get_all()) == 1
 
 
@@ -40,16 +40,17 @@ async def test_clear(store: InMemoryStore) -> None:
     await store.add(Memory(content="One"))
     await store.add(Memory(content="Two"))
 
-    assert store.count() == 2
+    assert await store.count() == 2
 
-    store.clear()
+    await store.clear()
 
-    assert store.count() == 0
+    assert await store.count() == 0
     assert await store.get_all() == []
 
 
-def test_count_empty(store: InMemoryStore) -> None:
-    assert store.count() == 0
+@pytest.mark.asyncio
+async def test_count_empty(store: InMemoryStore) -> None:
+    assert await store.count() == 0
 
 
 @pytest.mark.asyncio
@@ -58,7 +59,7 @@ async def test_count_after_add(store: InMemoryStore) -> None:
     await store.add(Memory(content="B"))
     await store.add(Memory(content="C"))
 
-    assert store.count() == 3
+    assert await store.count() == 3
 
 
 @pytest.mark.asyncio
@@ -79,9 +80,9 @@ async def test_multiple_memories(store: InMemoryStore) -> None:
 
 @pytest.mark.asyncio
 async def test_clear_empty_store(store: InMemoryStore) -> None:
-    store.clear()
+    await store.clear()
 
-    assert store.count() == 0
+    assert await store.count() == 0
     assert await store.get_all() == []
 
 
@@ -92,7 +93,7 @@ async def test_add_duplicate_memory_instances(store: InMemoryStore) -> None:
     await store.add(memory)
     await store.add(memory)
 
-    assert store.count() == 2
+    assert await store.count() == 2
 
 
 @pytest.mark.asyncio
@@ -105,5 +106,5 @@ async def test_modifying_returned_list_does_not_modify_store(
 
     result.clear()
 
-    assert store.count() == 1
+    assert await store.count() == 1
     assert len(await store.get_all()) == 1

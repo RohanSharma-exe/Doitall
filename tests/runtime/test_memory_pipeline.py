@@ -78,4 +78,4 @@ async def test_pipeline_multiple_turns():
         AssistantMessage(content="Response two"),
     )
 
-    assert store.count() == 2
+    assert await store.count() == 2

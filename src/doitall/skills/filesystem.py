@@ -1,3 +1,5 @@
+import asyncio
+import functools
 from typing import Any
 
 from doitall.config.settings import settings
@@ -62,7 +64,10 @@ class FilesystemSkill(BaseSkill):
         if action not in handlers:
             raise ValueError(f"Unknown filesystem action: {action}")
 
-        return handlers[action](**kwargs)
+        # Run the synchronous handler in a thread pool so the event loop is
+        # never blocked by filesystem I/O.
+        handler = handlers[action]
+        return await asyncio.to_thread(functools.partial(handler, **kwargs))
 
     def _read(
         self,

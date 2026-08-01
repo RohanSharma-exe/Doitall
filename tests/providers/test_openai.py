@@ -87,8 +87,28 @@ async def test_chat_uses_settings_model():
 
 @pytest.mark.asyncio
 async def test_health_check_returns_true():
+    """health_check returns True when the LiteLLM client succeeds."""
     provider = OpenAIProvider()
-    assert await provider.health_check() is True
+    with patch.object(
+        provider.client,
+        "chat",
+        new_callable=AsyncMock,
+        return_value=_make_fake_response(),
+    ):
+        assert await provider.health_check() is True
+
+
+@pytest.mark.asyncio
+async def test_health_check_returns_false_on_error():
+    """health_check returns False when the LiteLLM client raises."""
+    provider = OpenAIProvider()
+    with patch.object(
+        provider.client,
+        "chat",
+        new_callable=AsyncMock,
+        side_effect=Exception("auth error"),
+    ):
+        assert await provider.health_check() is False
 
 
 def test_convert_tools():

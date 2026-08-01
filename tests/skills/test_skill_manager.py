@@ -1,5 +1,6 @@
 import pytest
 
+from doitall.core.exceptions import SkillError
 from doitall.services.container import ServiceContainer
 from doitall.skills.base import BaseSkill
 from doitall.skills.manager import SkillManager
@@ -36,7 +37,7 @@ async def test_execute_registered_skill():
 
 
 @pytest.mark.asyncio
-async def test_unknown_skill_raises_key_error():
+async def test_unknown_skill_raises_skill_error():
     registry = SkillRegistry()
 
     container = ServiceContainer()
@@ -46,7 +47,7 @@ async def test_unknown_skill_raises_key_error():
         container,
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(SkillError):
         await manager.execute("missing")
 
 

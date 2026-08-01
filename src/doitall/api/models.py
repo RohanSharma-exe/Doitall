@@ -87,3 +87,33 @@ class ProviderInfo(BaseModel):
 
 class ProvidersResponse(BaseModel):
     providers: list[ProviderInfo]
+
+
+# ---------------------------------------------------------------------------
+# Sessions
+# ---------------------------------------------------------------------------
+
+
+class MessageDetail(BaseModel):
+    """A single message inside a session history."""
+
+    role: str
+    content: str
+    tool_calls: list[dict] = []
+    created_at: str
+
+
+class SessionSummary(BaseModel):
+    """Brief session info returned in list responses."""
+
+    session_id: str
+    agent_name: str
+    created_at: str
+    last_accessed_at: str
+    message_count: int
+
+
+class SessionDetail(SessionSummary):
+    """Full session info including message history."""
+
+    messages: list[MessageDetail]

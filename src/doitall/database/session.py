@@ -1,12 +1,18 @@
 """Database session management."""
+from contextlib import contextmanager
+from typing import Generator
 
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from doitall.config.settings import settings
 
+# Only echo SQL in development — never in production where it leaks query
+# details and creates significant log noise.
+_sql_echo = settings.DEBUG and settings.ENVIRONMENT != "production"
+
 engine = create_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=_sql_echo,
 )
 
 
@@ -19,12 +25,15 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
-def get_session():
-    """Return a database session.
+@contextmanager
+def get_session() -> Generator[Session, None, None]:
+    """Context-manager that yields a database session and guarantees close.
 
-    Returns:
-        A new SQLAlchemy Session instance for database operations.
+    Usage::
+
+        with get_session() as session:
+            session.add(obj)
+            session.commit()
     """
-    from sqlmodel import Session
-
-    return Session(engine)
+    with Session(engine) as session:
+        yield session

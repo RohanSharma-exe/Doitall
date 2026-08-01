@@ -28,7 +28,7 @@ class VectorKnowledgeRepository(KnowledgeRepository):
 
             payload = ChunkSerializer.to_payload(chunk)
 
-            self.vector_store.upsert(
+            await self.vector_store.upsert(
                 point_id=chunk.id,
                 vector=vector,
                 payload=payload,
@@ -43,7 +43,7 @@ class VectorKnowledgeRepository(KnowledgeRepository):
     ) -> list[Document]:
         vector = await self.embedding_manager.embed(query)
 
-        results = self.vector_store.search(
+        results = await self.vector_store.search(
             vector=vector,
             limit=limit,
         )
@@ -70,8 +70,8 @@ class VectorKnowledgeRepository(KnowledgeRepository):
 
         return documents
 
-    def clear(self) -> None:
-        self.vector_store.clear()
+    async def clear(self) -> None:
+        await self.vector_store.clear()
 
-    def count(self) -> int:
-        return self.vector_store.count()
+    async def count(self) -> int:
+        return await self.vector_store.count()

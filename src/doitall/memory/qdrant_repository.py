@@ -26,7 +26,7 @@ class QdrantRepository(VectorRepository):
             memory,
         )
 
-        self.vector_store.upsert(
+        await self.vector_store.upsert(
             point_id=memory.id,
             vector=vector,
             payload=payload,
@@ -34,7 +34,7 @@ class QdrantRepository(VectorRepository):
 
     async def get_all(self, limit: int = 10000) -> list[Memory]:
         """Return all stored memories using scroll (no embedding needed)."""
-        results = self.vector_store.scroll_all(limit=limit)
+        results = await self.vector_store.scroll_all(limit=limit)
         return [
             MemorySerializer.from_payload(
                 memory_id=str(result["id"]),
@@ -50,7 +50,7 @@ class QdrantRepository(VectorRepository):
     ) -> list[Memory]:
         vector = await self.embedding_manager.embed(query)
 
-        results = self.vector_store.search(
+        results = await self.vector_store.search(
             vector=vector,
             limit=limit,
         )
@@ -63,15 +63,14 @@ class QdrantRepository(VectorRepository):
             for result in results
         ]
 
-    def delete(
+    async def delete(
         self,
         memory_id: str,
     ) -> None:
-        self.vector_store.delete(memory_id)
+        await self.vector_store.delete(memory_id)
 
-    def clear(self) -> None:
-        self.vector_store.clear()
+    async def clear(self) -> None:
+        await self.vector_store.clear()
 
-    def count(self) -> int:
-        return self.vector_store.count()
-
+    async def count(self) -> int:
+        return await self.vector_store.count()

@@ -3,8 +3,10 @@ from typing import Any
 
 
 class VectorStore(ABC):
+    """Async abstract interface for vector storage backends."""
+
     @abstractmethod
-    def upsert(
+    async def upsert(
         self,
         point_id: str,
         vector: list[float],
@@ -13,7 +15,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         vector: list[float],
         limit: int = 5,
@@ -21,7 +23,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def scroll_all(
+    async def scroll_all(
         self,
         limit: int = 10000,
     ) -> list[dict[str, Any]]:
@@ -33,16 +35,16 @@ class VectorStore(ABC):
         """
 
     @abstractmethod
-    def delete(
+    async def delete(
         self,
         point_id: str,
     ) -> None:
         pass
 
     @abstractmethod
-    def count(self) -> int:
+    async def count(self) -> int:
         pass
 
     @abstractmethod
-    def clear(self) -> None:
+    async def clear(self) -> None:
         pass
