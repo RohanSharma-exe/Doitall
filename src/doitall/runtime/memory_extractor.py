@@ -11,8 +11,13 @@ class MemoryExtractor:
         if not user.content.strip() and not assistant.content.strip():
             return []
 
-        return [
-            Memory(
-                content=(f"User: {user.content}\nAssistant: {assistant.content}"),
-            )
-        ]
+        user_content = self._compact(user.content)
+        assistant_content = self._compact(assistant.content)
+        return [Memory(content=(f"User preference/fact: {user_content}\nAssistant outcome: {assistant_content}"))]
+
+    def _compact(self, content: str, limit: int = 1000) -> str:
+        """Keep memory payloads concise and avoid storing bulky raw transcripts."""
+        compacted = " ".join(content.split())
+        if len(compacted) <= limit:
+            return compacted
+        return f"{compacted[:limit].rstrip()}…"

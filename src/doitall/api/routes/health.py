@@ -1,34 +1,42 @@
-"""Health check route — performs real connectivity checks."""
-from fastapi import APIRouter
+"""Health check routes for liveness and dependency readiness."""
+from fastapi import APIRouter, Response, status
 
-from doitall.config.settings import settings
 from doitall.api.models import HealthResponse, ServiceStatus
+from doitall.config.settings import settings
 from doitall.services.registry import container
 
 router = APIRouter()
 
 
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    summary="Application health check",
-    tags=["system"],
-)
-async def health() -> HealthResponse:
-    """Return the live health status of each backing service."""
+def _response_status(services: dict[str, ServiceStatus]) -> str:
+    return "ok" if all(s.status == "ok" for s in services.values()) else "degraded"
+
+
+@router.get("/health/live", response_model=HealthResponse, tags=["system"])
+async def liveness() -> HealthResponse:
+    """Return process liveness without checking external dependencies."""
+    return HealthResponse(
+        status="ok",
+        version=settings.APP_VERSION,
+        services={"api": ServiceStatus(status="ok")},
+    )
+
+
+@router.get("/health/ready", response_model=HealthResponse, tags=["system"])
+async def readiness(response: Response) -> HealthResponse:
+    """Return readiness based on database, Qdrant, and provider manager checks."""
     services: dict[str, ServiceStatus] = {}
 
-    # --- Qdrant ---
     try:
         client = container.resolve("qdrant_client")
-        client.get_collections()
+        await client.get_collections()
         services["qdrant"] = ServiceStatus(status="ok")
     except Exception as exc:
         services["qdrant"] = ServiceStatus(status="error", detail=str(exc))
 
-    # --- Database ---
     try:
         from sqlalchemy import text
+
         engine = container.resolve("engine")
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -36,7 +44,6 @@ async def health() -> HealthResponse:
     except Exception as exc:
         services["database"] = ServiceStatus(status="error", detail=str(exc))
 
-    # --- Providers ---
     try:
         manager = container.resolve("provider_manager")
         manager.default()
@@ -44,14 +51,14 @@ async def health() -> HealthResponse:
     except Exception as exc:
         services["providers"] = ServiceStatus(status="error", detail=str(exc))
 
-    overall = (
-        "ok"
-        if all(s.status == "ok" for s in services.values())
-        else "degraded"
-    )
+    overall = _response_status(services)
+    if overall != "ok":
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    return HealthResponse(
-        status=overall,
-        version=settings.APP_VERSION,
-        services=services,
-    )
+    return HealthResponse(status=overall, version=settings.APP_VERSION, services=services)
+
+
+@router.get("/health", response_model=HealthResponse, summary="Application health check", tags=["system"])
+async def health(response: Response) -> HealthResponse:
+    """Backward-compatible readiness endpoint."""
+    return await readiness(response)

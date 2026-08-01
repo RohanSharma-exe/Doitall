@@ -21,13 +21,20 @@ class AgentExecutor:
         self._tool_engine = tool_engine
         self._tool_message_builder = tool_message_builder
 
+    async def stream(
+        self,
+        context: RuntimeContext,
+    ):
+        async for chunk in self._runtime.stream(context):
+            yield chunk
+
     async def execute(
         self,
         context: RuntimeContext,
     ) -> ProviderResponse:
         response = await self._runtime.execute(context)
 
-        for iteration in range(self.MAX_TOOL_ITERATIONS):
+        for _iteration in range(self.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
                 return response
 

@@ -3,7 +3,9 @@ REST API request and response models for the Doitall framework.
 """
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from doitall.config.settings import settings
 
 # ---------------------------------------------------------------------------
 # Chat
@@ -13,7 +15,12 @@ from pydantic import BaseModel, Field
 class ChatRequest(BaseModel):
     """Request body for a chat turn."""
 
-    message: str = Field(..., description="The user's message.")
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=settings.CHAT_MESSAGE_MAX_LENGTH,
+        description="The user's message.",
+    )
     provider: str | None = Field(
         default=None,
         description="Override the default provider (e.g. 'openai', 'groq').",
@@ -40,12 +47,24 @@ class ChatResponse(BaseModel):
 class IngestRequest(BaseModel):
     """Request body to ingest a document into the knowledge base."""
 
-    content: str = Field(..., description="Text content to index.")
-    title: str | None = Field(default=None, description="Optional document title.")
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=settings.INGEST_CONTENT_MAX_LENGTH,
+        description="Text content to index.",
+    )
+    title: str | None = Field(default=None, max_length=512, description="Optional document title.")
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Optional key-value metadata attached to the document.",
     )
+
+    @field_validator("metadata")
+    @classmethod
+    def metadata_must_be_reasonable(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if len(value) > 100:
+            raise ValueError("metadata may contain at most 100 keys")
+        return value
 
 
 class IngestResponse(BaseModel):
