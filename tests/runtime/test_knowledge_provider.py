@@ -10,11 +10,13 @@ from doitall.runtime.knowledge_provider import KnowledgeProvider
 @pytest.mark.asyncio
 async def test_populate():
     repository = Mock()
-    repository.search = AsyncMock(return_value=[
-        Document(
-            content="Python",
-        )
-    ])
+    repository.search = AsyncMock(
+        return_value=[
+            Document(
+                content="Python",
+            )
+        ]
+    )
 
     provider = KnowledgeProvider(repository)
 

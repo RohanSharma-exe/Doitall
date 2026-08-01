@@ -1,4 +1,5 @@
 """Chat route — one-turn and session-aware chat via the Doitall runtime."""
+
 import time
 import uuid
 from threading import Lock
@@ -144,7 +145,9 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         try:
             service = _get_chat_service(session_id, provider=request.provider)
             yield f"event: session\ndata: {session_id}\n\n"
-            async for chunk in service.stream_chat(request.message, provider=request.provider):
+            async for chunk in service.stream_chat(
+                request.message, provider=request.provider
+            ):
                 safe_chunk = chunk.replace("\r", " ").replace("\n", "\ndata: ")
                 yield f"data: {safe_chunk}\n\n"
             yield "event: done\ndata: [DONE]\n\n"

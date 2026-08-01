@@ -1,4 +1,5 @@
 """SessionRepository — thin data-access layer for sessions and messages."""
+
 from datetime import UTC, datetime
 
 from sqlmodel import select
@@ -73,9 +74,7 @@ class SessionRepository:
         """Hard-delete a session and all its messages. Returns True if found."""
         with self._get_session() as db:
             # Delete messages first (SQLite doesn't enforce FK cascades by default)
-            stmt = select(MessageRecord).where(
-                MessageRecord.session_id == session_id
-            )
+            stmt = select(MessageRecord).where(MessageRecord.session_id == session_id)
             messages = db.exec(stmt).all()
             for msg in messages:
                 db.delete(msg)
@@ -142,9 +141,7 @@ class SessionRepository:
     def clear_messages(self, session_id: str) -> int:
         """Delete all messages for a session. Returns number deleted."""
         with self._get_session() as db:
-            stmt = select(MessageRecord).where(
-                MessageRecord.session_id == session_id
-            )
+            stmt = select(MessageRecord).where(MessageRecord.session_id == session_id)
             messages = db.exec(stmt).all()
             count = len(messages)
             for msg in messages:

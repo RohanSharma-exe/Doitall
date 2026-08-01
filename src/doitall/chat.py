@@ -1,4 +1,3 @@
-
 from rich import print
 
 from doitall import Doitall

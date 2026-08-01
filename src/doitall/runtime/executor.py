@@ -87,7 +87,9 @@ class RuntimeExecutor:
             else self._provider_manager.default()
         )
         messages = self.prepare(context)
-        async for chunk in provider.stream(self._payload(messages), tools=context.tools):
+        async for chunk in provider.stream(
+            self._payload(messages), tools=context.tools
+        ):
             yield chunk
 
     async def execute(

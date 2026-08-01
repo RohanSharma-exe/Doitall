@@ -37,9 +37,7 @@ async def test_chat_returns_provider_response():
         new_callable=AsyncMock,
         return_value=fake_response,
     ):
-        result = await provider.chat(
-            messages=[{"role": "user", "content": "Hello"}]
-        )
+        result = await provider.chat(messages=[{"role": "user", "content": "Hello"}])
 
     assert isinstance(result, ProviderResponse)
     assert result.content == "Ollama Working"
@@ -58,9 +56,7 @@ async def test_chat_content_extracted():
         new_callable=AsyncMock,
         return_value=fake_response,
     ):
-        result = await provider.chat(
-            messages=[{"role": "user", "content": "Hi"}]
-        )
+        result = await provider.chat(messages=[{"role": "user", "content": "Hi"}])
 
     assert result.content == "Local model response"
 

@@ -9,6 +9,7 @@ Run directly:
 Or via the CLI:
     doitall start
 """
+
 import time
 import uuid
 from collections import defaultdict, deque
@@ -39,7 +40,9 @@ def _rate_limit_for_path(path: str) -> int | None:
 
 
 def _rate_limit_key(request: Request) -> str:
-    api_key = request.headers.get("x-api-key") or request.headers.get("authorization", "")
+    api_key = request.headers.get("x-api-key") or request.headers.get(
+        "authorization", ""
+    )
     if api_key:
         return f"key:{api_key}"
     host = request.client.host if request.client else "unknown"
@@ -66,7 +69,7 @@ def _is_rate_limited(key: str, limit: int, now: float) -> bool:
 async def lifespan(_app: FastAPI):
     """Bootstrap the framework on startup and clean up on shutdown."""
     logger.info("Starting Doitall API…")
-    bootstrap()            # sync: wire all services into the DI container
+    bootstrap()  # sync: wire all services into the DI container
     await async_bootstrap()  # async: create Qdrant collections on running loop
     yield
     logger.info("Shutting down Doitall API…")
@@ -122,7 +125,9 @@ def create_app() -> FastAPI:
                     request.url.path,
                     key.split(":", 1)[0],
                 )
-                response = JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+                response = JSONResponse(
+                    status_code=429, content={"detail": "Rate limit exceeded"}
+                )
                 response.headers["X-Request-ID"] = request_id
                 return response
 
@@ -134,7 +139,9 @@ def create_app() -> FastAPI:
             raise
 
         duration_ms = (time.perf_counter() - start) * 1000
-        _request_counts[f"{request.method} {request.url.path} {response.status_code}"] += 1
+        _request_counts[
+            f"{request.method} {request.url.path} {response.status_code}"
+        ] += 1
         response.headers["X-Request-ID"] = request_id
         bound_logger.info(
             "HTTP request method={} path={} status={} duration_ms={:.2f}",

@@ -13,7 +13,13 @@ class MemoryExtractor:
 
         user_content = self._compact(user.content)
         assistant_content = self._compact(assistant.content)
-        return [Memory(content=(f"User preference/fact: {user_content}\nAssistant outcome: {assistant_content}"))]
+        return [
+            Memory(
+                content=(
+                    f"User preference/fact: {user_content}\nAssistant outcome: {assistant_content}"
+                )
+            )
+        ]
 
     def _compact(self, content: str, limit: int = 1000) -> str:
         """Keep memory payloads concise and avoid storing bulky raw transcripts."""

@@ -62,4 +62,3 @@ class SkillRegistry:
 
     def clear(self) -> None:
         self._skills.clear()
-

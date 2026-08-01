@@ -19,7 +19,4 @@ class KnowledgeProvider(ContextProvider):
         if not context.query:
             return
 
-        context.knowledge.extend(
-            await self._repository.search(context.query)
-        )
-
+        context.knowledge.extend(await self._repository.search(context.query))

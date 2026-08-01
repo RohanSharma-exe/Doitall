@@ -6,6 +6,7 @@ Two modes:
 - **DB-backed**: pass ``session_id`` and ``repository`` to write every message
   through to the database immediately, and hydrate from DB on first access.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -33,9 +34,7 @@ def _record_to_message(record) -> Message:  # type: ignore[no-untyped-def]
     if role == MessageRole.ASSISTANT:
         from doitall.models.tool_call import ToolCall
 
-        tool_calls = [
-            ToolCall(**tc) for tc in record.get_tool_calls()
-        ]
+        tool_calls = [ToolCall(**tc) for tc in record.get_tool_calls()]
         return AssistantMessage(content=record.content, tool_calls=tool_calls)
     if role == MessageRole.SYSTEM:
         return SystemMessage(content=record.content)

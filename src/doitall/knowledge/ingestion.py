@@ -51,11 +51,15 @@ class KnowledgeIngestionService:
             try:
                 results.append(await self.ingest(document))
             except Exception as e:
-                failed_documents.append((document.id if document else "unknown", str(e)))
+                failed_documents.append(
+                    (document.id if document else "unknown", str(e))
+                )
 
         if failed_documents:
             error_msg = f"Failed to ingest {len(failed_documents)} out of {len(documents)} documents. "
-            error_msg += f"Failed document IDs: {[doc_id for doc_id, _ in failed_documents]}"
+            error_msg += (
+                f"Failed document IDs: {[doc_id for doc_id, _ in failed_documents]}"
+            )
             raise ProviderError(error_msg)
 
         return results

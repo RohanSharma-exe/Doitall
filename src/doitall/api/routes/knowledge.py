@@ -1,4 +1,5 @@
 """Knowledge ingestion route — add documents to the RAG knowledge base."""
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from doitall.api.models import IngestRequest, IngestResponse

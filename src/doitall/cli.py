@@ -42,6 +42,7 @@ def doctor() -> None:
 
     # --- Python / config ---
     import sys
+
     _ok("Python", f"{sys.version.split()[0]}")
     _ok("App", f"{settings.APP_NAME} v{settings.APP_VERSION}")
     _ok("Environment", settings.ENVIRONMENT)
@@ -49,6 +50,7 @@ def doctor() -> None:
     # --- Qdrant ---
     try:
         from qdrant_client import QdrantClient
+
         client = QdrantClient(
             url=settings.QDRANT_URL,
             api_key=settings.QDRANT_API_KEY or None,
@@ -61,6 +63,7 @@ def doctor() -> None:
     # --- Database ---
     try:
         from sqlalchemy import create_engine, text
+
         eng = create_engine(settings.DATABASE_URL)
         with eng.connect() as conn:
             conn.execute(text("SELECT 1"))

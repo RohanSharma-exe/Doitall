@@ -11,7 +11,9 @@ class ConcreteProvider(BaseProvider):
         super().__init__("test")
 
     async def chat(self, messages, **kwargs) -> ProviderResponse:
-        return ProviderResponse(content="ok", tool_calls=[], finish_reason="stop", model="test")
+        return ProviderResponse(
+            content="ok", tool_calls=[], finish_reason="stop", model="test"
+        )
 
     async def health_check(self) -> bool:
         return True

@@ -36,7 +36,11 @@ class Settings(BaseSettings):
     # e.g. CORS_ORIGINS=["https://app.example.com"].
     # NOTE: do NOT use ["*"] together with credentials — browsers will reject it.
     CORS_ORIGINS: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8000", "http://localhost:5173"]
+        default=[
+            "http://localhost:3000",
+            "http://localhost:8000",
+            "http://localhost:5173",
+        ]
     )
 
     # Seconds of inactivity before an in-memory chat session is evicted.
@@ -107,7 +111,6 @@ class Settings(BaseSettings):
     DATA_DIR: Path = BASE_DIR / "data"
     STORAGE_DIR: Path = BASE_DIR / "storage"
     LOG_DIR: Path = BASE_DIR / "logs"
-
 
 
 @lru_cache

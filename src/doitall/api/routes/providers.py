@@ -1,4 +1,5 @@
 """Providers route — list all registered AI providers and their status."""
+
 from fastapi import APIRouter
 
 from doitall.api.models import ProviderInfo, ProvidersResponse

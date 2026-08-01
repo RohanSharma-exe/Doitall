@@ -1,4 +1,5 @@
 """Database session management."""
+
 from collections.abc import Generator
 from contextlib import contextmanager
 

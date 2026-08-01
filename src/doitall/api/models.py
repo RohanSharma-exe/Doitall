@@ -1,6 +1,7 @@
 """
 REST API request and response models for the Doitall framework.
 """
+
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -53,7 +54,9 @@ class IngestRequest(BaseModel):
         max_length=settings.INGEST_CONTENT_MAX_LENGTH,
         description="Text content to index.",
     )
-    title: str | None = Field(default=None, max_length=512, description="Optional document title.")
+    title: str | None = Field(
+        default=None, max_length=512, description="Optional document title."
+    )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Optional key-value metadata attached to the document.",

@@ -1,7 +1,7 @@
 """Persisted database models for sessions and conversation messages."""
+
 import json
 from datetime import UTC, datetime
-from typing import Optional
 
 from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
@@ -22,7 +22,7 @@ class SessionRecord(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now)
     last_accessed_at: datetime = Field(default_factory=_now)
 
-    messages: list["MessageRecord"] = Relationship(back_populates="session")
+    messages: list[MessageRecord] = Relationship(back_populates="session")
 
 
 class MessageRecord(SQLModel, table=True):
@@ -44,7 +44,7 @@ class MessageRecord(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=_now)
 
-    session: Optional["SessionRecord"] = Relationship(back_populates="messages")
+    session: SessionRecord | None = Relationship(back_populates="messages")
 
     # ------------------------------------------------------------------
     # Helpers for serialising / deserialising tool_calls list

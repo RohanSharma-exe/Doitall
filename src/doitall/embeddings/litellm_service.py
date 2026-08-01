@@ -32,9 +32,13 @@ class LiteLLMEmbeddingService(EmbeddingService):
             )
             return response.data[0]["embedding"]
         except AuthenticationError as e:
-            raise ConfigurationError(f"Authentication failed for embedding model {self.model}: {e}") from e
+            raise ConfigurationError(
+                f"Authentication failed for embedding model {self.model}: {e}"
+            ) from e
         except RateLimitError as e:
-            raise ProviderError(f"Rate limit exceeded for embedding model {self.model}: {e}") from e
+            raise ProviderError(
+                f"Rate limit exceeded for embedding model {self.model}: {e}"
+            ) from e
         except ServiceUnavailableError as e:
             raise ProviderError(f"Embedding service unavailable: {e}") from e
         except Exception:
@@ -42,7 +46,9 @@ class LiteLLMEmbeddingService(EmbeddingService):
             try:
                 return await asyncio.to_thread(self._sync_embed, text)
             except Exception as fallback_error:
-                raise ProviderError(f"Failed to generate embedding: {fallback_error}") from fallback_error
+                raise ProviderError(
+                    f"Failed to generate embedding: {fallback_error}"
+                ) from fallback_error
 
     def _sync_embed(
         self,
@@ -55,9 +61,13 @@ class LiteLLMEmbeddingService(EmbeddingService):
             )
             return response.data[0]["embedding"]
         except AuthenticationError as e:
-            raise ConfigurationError(f"Authentication failed for embedding model {self.model}: {e}") from e
+            raise ConfigurationError(
+                f"Authentication failed for embedding model {self.model}: {e}"
+            ) from e
         except RateLimitError as e:
-            raise ProviderError(f"Rate limit exceeded for embedding model {self.model}: {e}") from e
+            raise ProviderError(
+                f"Rate limit exceeded for embedding model {self.model}: {e}"
+            ) from e
         except ServiceUnavailableError as e:
             raise ProviderError(f"Embedding service unavailable: {e}") from e
         except Exception as e:
@@ -77,9 +87,13 @@ class LiteLLMEmbeddingService(EmbeddingService):
             )
             return [item["embedding"] for item in response.data]
         except AuthenticationError as e:
-            raise ConfigurationError(f"Authentication failed for embedding model {self.model}: {e}") from e
+            raise ConfigurationError(
+                f"Authentication failed for embedding model {self.model}: {e}"
+            ) from e
         except RateLimitError as e:
-            raise ProviderError(f"Rate limit exceeded for embedding model {self.model}: {e}") from e
+            raise ProviderError(
+                f"Rate limit exceeded for embedding model {self.model}: {e}"
+            ) from e
         except ServiceUnavailableError as e:
             raise ProviderError(f"Embedding service unavailable: {e}") from e
         except Exception:
@@ -87,7 +101,9 @@ class LiteLLMEmbeddingService(EmbeddingService):
             try:
                 return await asyncio.to_thread(self._sync_embed_batch, texts)
             except Exception as fallback_error:
-                raise ProviderError(f"Failed to generate embeddings: {fallback_error}") from fallback_error
+                raise ProviderError(
+                    f"Failed to generate embeddings: {fallback_error}"
+                ) from fallback_error
 
     def _sync_embed_batch(
         self,
@@ -100,9 +116,13 @@ class LiteLLMEmbeddingService(EmbeddingService):
             )
             return [item["embedding"] for item in response.data]
         except AuthenticationError as e:
-            raise ConfigurationError(f"Authentication failed for embedding model {self.model}: {e}") from e
+            raise ConfigurationError(
+                f"Authentication failed for embedding model {self.model}: {e}"
+            ) from e
         except RateLimitError as e:
-            raise ProviderError(f"Rate limit exceeded for embedding model {self.model}: {e}") from e
+            raise ProviderError(
+                f"Rate limit exceeded for embedding model {self.model}: {e}"
+            ) from e
         except ServiceUnavailableError as e:
             raise ProviderError(f"Embedding service unavailable: {e}") from e
         except Exception as e:

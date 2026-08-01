@@ -175,6 +175,7 @@ def cleanup() -> None:
         if container.has("qdrant_client"):
             qdrant_client: AsyncQdrantClient = container.resolve("qdrant_client")
             import asyncio
+
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():

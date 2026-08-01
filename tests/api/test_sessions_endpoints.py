@@ -9,6 +9,7 @@ thread.  SQLite's default SingletonThreadPool gives each thread its OWN
 connection (= empty database).  StaticPool forces a single shared connection
 so tables created in the test thread are visible to the ASGI worker thread.
 """
+
 from contextlib import contextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -38,6 +39,7 @@ def _make_test_engine():
 
 def _make_repo(engine) -> SessionRepository:
     """Return a SessionRepository backed by the given in-memory engine."""
+
     @contextmanager
     def factory():
         with DBSession(engine) as s:

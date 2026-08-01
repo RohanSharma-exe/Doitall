@@ -1,4 +1,5 @@
 """Health check routes for liveness and dependency readiness."""
+
 from fastapi import APIRouter, Response, status
 
 from doitall.api.models import HealthResponse, ServiceStatus
@@ -55,10 +56,17 @@ async def readiness(response: Response) -> HealthResponse:
     if overall != "ok":
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
-    return HealthResponse(status=overall, version=settings.APP_VERSION, services=services)
+    return HealthResponse(
+        status=overall, version=settings.APP_VERSION, services=services
+    )
 
 
-@router.get("/health", response_model=HealthResponse, summary="Application health check", tags=["system"])
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Application health check",
+    tags=["system"],
+)
 async def health(response: Response) -> HealthResponse:
     """Backward-compatible readiness endpoint."""
     return await readiness(response)

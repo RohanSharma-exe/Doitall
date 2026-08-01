@@ -3,6 +3,7 @@
 Importing this module registers all SQLModel table metadata so that
 ``SQLModel.metadata.create_all(engine)`` creates every table.
 """
+
 # noqa: F401 — side-effect imports register table metadata
 from sqlmodel import SQLModel
 

@@ -1,4 +1,5 @@
 """Tests for SessionRepository using an in-memory SQLite database."""
+
 from contextlib import contextmanager
 
 import pytest
@@ -12,6 +13,7 @@ from doitall.database.session_repository import SessionRepository
 
 def _make_repo(engine) -> SessionRepository:
     """Return a SessionRepository wired to the given engine."""
+
     @contextmanager
     def factory():
         with DBSession(engine) as s:
@@ -122,6 +124,7 @@ def test_list_sessions(repo):
 
 def test_touch_updates_timestamp(repo):
     import time as _time
+
     repo.get_or_create("sess-touch")
     before = {s.session_id: s.last_accessed_at for s in repo.list_sessions()}
     _time.sleep(0.05)
