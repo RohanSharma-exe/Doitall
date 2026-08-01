@@ -22,7 +22,7 @@ from doitall.api.models import (
 from doitall.config.settings import settings
 from doitall.core.exceptions import DoitallError
 from doitall.database.session_repository import SessionRepository
-from doitall.models.stream import StreamEvent, ThinkingEvent
+from doitall.models.stream import StreamEvent
 from doitall.runtime.runtime_factory import RuntimeFactory
 from doitall.security.auth import require_api_key
 from doitall.services.chat_service import ChatService
@@ -162,6 +162,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     return ChatResponse(
         response=response.content,
+        message={"role": "assistant", "content": response.content},
         model=response.model or request.model,
         usage_tokens=response.usage_tokens,
         session_id=session_id,
@@ -186,38 +187,10 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         try:
             service = _get_chat_service(session_id, provider=request.provider)
             yield sse(StreamEvent(event="session", data={"session_id": session_id}))
-            yield sse(
-                StreamEvent(
-                    event="metadata",
-                    data={"provider": request.provider, "model": request.model},
-                )
-            )
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(
-                        label="Understanding request", status="completed"
-                    ).model_dump(),
-                )
-            )
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(label="Generating response").model_dump(),
-                )
-            )
             async for chunk in service.stream_chat(
                 request.message, provider=request.provider, model=request.model
             ):
                 yield sse(StreamEvent(event="token", data={"text": chunk}))
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(
-                        label="Finalizing response", status="completed"
-                    ).model_dump(),
-                )
-            )
             yield sse(StreamEvent(event="done", data={"message": "[DONE]"}))
         except KeyError:
             yield sse(

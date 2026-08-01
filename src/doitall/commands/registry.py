@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-CommandCategory = Literal["core", "development", "workspace", "ai"]
+CommandCategory = Literal["core", "development", "workspace", "ai", "tools"]
 
 
 class Command(BaseModel):
@@ -70,6 +70,7 @@ def _builtin_commands() -> list[Command]:
         (
             "core",
             [
+                "model",
                 "models",
                 "providers",
                 "skills",
@@ -82,12 +83,15 @@ def _builtin_commands() -> list[Command]:
                 "new",
                 "history",
                 "search",
+                "web",
+                "browse",
                 "export",
                 "import",
             ],
         ),
-        ("development", ["system", "logs", "doctor", "health", "config", "version"]),
+        ("development", ["logs", "doctor", "health", "config", "version"]),
         ("workspace", ["files", "projects", "workspace", "index", "sync"]),
+        ("tools", ["web-search", "web-fetch", "calculator", "time", "filesystem"]),
         (
             "ai",
             [
@@ -97,6 +101,7 @@ def _builtin_commands() -> list[Command]:
                 "prompts",
                 "templates",
                 "mcp",
+                "toolbox",
                 "rag",
                 "knowledge",
             ],
@@ -108,7 +113,16 @@ def _builtin_commands() -> list[Command]:
         "new": "Start a new chat session.",
         "thinking": "Toggle the safe thinking timeline.",
         "providers": "Show configured AI providers.",
+        "model": "Choose or inspect the active AI model.",
         "models": "Show available AI models.",
+        "search": "Search across chats, files, and indexed knowledge.",
+        "web": "Search the web from chat when current information is needed.",
+        "browse": "Fetch or inspect a web page from chat.",
+        "web-search": "Run the web_search tool for current web results.",
+        "web-fetch": "Run the web_fetch tool to read a public URL.",
+        "calculator": "Run the calculator tool.",
+        "time": "Run the time tool for dates and time zones.",
+        "filesystem": "Run safe workspace file tools.",
     }
     commands: list[Command] = []
     for category, names in data:
@@ -118,8 +132,14 @@ def _builtin_commands() -> list[Command]:
                     name=f"/{name}",
                     category=category,
                     description=descriptions.get(name, f"Open {name} controls."),
-                    icon="sparkles" if category == "ai" else "terminal",
-                    localization_key=f"commands.{name}",
+                    icon=(
+                        "wrench"
+                        if category == "tools"
+                        else "sparkles"
+                        if category == "ai"
+                        else "terminal"
+                    ),
+                    localization_key=f"commands.{name.replace('-', '_')}",
                 )
             )
     return commands

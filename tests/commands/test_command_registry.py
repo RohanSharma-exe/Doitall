@@ -8,12 +8,15 @@ def test_default_registry_contains_required_commands():
     names = {command.name for command in registry.list()}
 
     for name in [
+        "/model",
         "/models",
         "/providers",
         "/skills",
         "/tools",
         "/thinking",
         "/knowledge",
+        "/web-search",
+        "/web-fetch",
     ]:
         assert name in names
 
