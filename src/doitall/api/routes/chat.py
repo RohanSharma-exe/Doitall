@@ -19,6 +19,8 @@ from doitall.api.models import (
     SessionDetail,
     SessionSummary,
 )
+from doitall.commands import default_registry
+from doitall.commands.executor import SlashCommandExecutor
 from doitall.config.settings import settings
 from doitall.core.exceptions import DoitallError
 from doitall.database.session_repository import SessionRepository
@@ -59,6 +61,17 @@ def _get_repo() -> SessionRepository:
     if container.has("session_repository"):
         return container.resolve("session_repository")
     return _repo
+
+
+def _get_command_executor() -> SlashCommandExecutor | None:
+    """Return a slash command executor when runtime services are ready."""
+    if not (container.has("provider_manager") and container.has("skill_registry")):
+        return None
+    return SlashCommandExecutor(
+        default_registry(),
+        container.resolve("provider_manager"),
+        container.resolve("skill_registry"),
+    )
 
 
 def _evict_expired() -> None:
@@ -142,6 +155,16 @@ async def chat(request: ChatRequest) -> ChatResponse:
     """
     session_id = request.session_id or str(uuid.uuid4())
 
+    command_executor = _get_command_executor()
+    if command_executor and command_executor.is_command(request.message):
+        command_result = await command_executor.execute(request.message)
+        if command_result is not None:
+            return ChatResponse(
+                response=command_result.content,
+                message={"role": "assistant", "content": command_result.content},
+                session_id=session_id,
+            )
+
     try:
         service = _get_chat_service(session_id, provider=request.provider)
         response = await service.chat_response(
@@ -185,7 +208,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 
     async def event_source():
         try:
-            service = _get_chat_service(session_id, provider=request.provider)
+            command_executor = _get_command_executor()
             yield sse(StreamEvent(event="session", data={"session_id": session_id}))
             async for chunk in service.stream_chat(
                 request.message, provider=request.provider, model=request.model

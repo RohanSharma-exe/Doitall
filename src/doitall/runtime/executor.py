@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from loguru import logger
+
 from doitall.models.message import (
     AssistantMessage,
     Message,
@@ -81,16 +83,28 @@ class RuntimeExecutor:
         self,
         context: RuntimeContext,
     ):
-        provider = (
-            self._provider_manager.get(context.provider)
-            if context.provider
-            else self._provider_manager.default()
-        )
         messages = self.prepare(context)
-        async for chunk in provider.stream(
-            self._payload(messages), tools=context.tools, model=context.model
-        ):
-            yield chunk
+        payload = self._payload(messages)
+        errors: list[Exception] = []
+        for candidate in self._provider_manager.fallback_candidates(context.provider):
+            try:
+                async for chunk in candidate.provider.stream(
+                    payload, tools=context.tools, model=context.model
+                ):
+                    yield chunk
+                return
+            except Exception as exc:
+                errors.append(exc)
+                logger.warning(
+                    "Provider stream failed provider={} model={}; trying fallback if available: {}",
+                    candidate.provider.name,
+                    context.model or "default",
+                    exc,
+                )
+
+        if errors:
+            raise errors[-1]
+        raise RuntimeError("No provider configured.")
 
     async def execute(
         self,
@@ -106,12 +120,26 @@ class RuntimeExecutor:
         """
         messages = self.prepare(context)
 
-        provider = (
-            self._provider_manager.get(context.provider)
-            if context.provider
-            else self._provider_manager.default()
-        )
+        payload = self._payload(messages)
+        errors: list[Exception] = []
 
-        return await provider.chat(
-            self._payload(messages), tools=context.tools, model=context.model
-        )
+        for candidate in self._provider_manager.fallback_candidates(context.provider):
+            try:
+                response = await candidate.provider.chat(
+                    payload, tools=context.tools, model=context.model
+                )
+                if isinstance(response, ProviderResponse) and response.model is None:
+                    response.model = context.model
+                return response
+            except Exception as exc:
+                errors.append(exc)
+                logger.warning(
+                    "Provider chat failed provider={} model={}; trying fallback if available: {}",
+                    candidate.provider.name,
+                    context.model or "default",
+                    exc,
+                )
+
+        if errors:
+            raise errors[-1]
+        raise RuntimeError("No provider configured.")

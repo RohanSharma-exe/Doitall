@@ -65,6 +65,7 @@ def bootstrap() -> None:
     qdrant_client = AsyncQdrantClient(
         url=settings.QDRANT_URL,
         api_key=settings.QDRANT_API_KEY or None,
+        check_compatibility=False,
     )
 
     # Memory store — uses the 'memories' collection
