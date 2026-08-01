@@ -19,10 +19,12 @@ from doitall.api.models import (
     SessionDetail,
     SessionSummary,
 )
+from doitall.commands import default_registry
+from doitall.commands.executor import SlashCommandExecutor
 from doitall.config.settings import settings
 from doitall.core.exceptions import DoitallError
 from doitall.database.session_repository import SessionRepository
-from doitall.models.stream import StreamEvent, ThinkingEvent
+from doitall.models.stream import StreamEvent
 from doitall.runtime.runtime_factory import RuntimeFactory
 from doitall.security.auth import require_api_key
 from doitall.services.chat_service import ChatService
@@ -59,6 +61,17 @@ def _get_repo() -> SessionRepository:
     if container.has("session_repository"):
         return container.resolve("session_repository")
     return _repo
+
+
+def _get_command_executor() -> SlashCommandExecutor | None:
+    """Return a slash command executor when runtime services are ready."""
+    if not (container.has("provider_manager") and container.has("skill_registry")):
+        return None
+    return SlashCommandExecutor(
+        default_registry(),
+        container.resolve("provider_manager"),
+        container.resolve("skill_registry"),
+    )
 
 
 def _evict_expired() -> None:
@@ -142,6 +155,16 @@ async def chat(request: ChatRequest) -> ChatResponse:
     """
     session_id = request.session_id or str(uuid.uuid4())
 
+    command_executor = _get_command_executor()
+    if command_executor and command_executor.is_command(request.message):
+        command_result = await command_executor.execute(request.message)
+        if command_result is not None:
+            return ChatResponse(
+                response=command_result.content,
+                message={"role": "assistant", "content": command_result.content},
+                session_id=session_id,
+            )
+
     try:
         service = _get_chat_service(session_id, provider=request.provider)
         response = await service.chat_response(
@@ -162,6 +185,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     return ChatResponse(
         response=response.content,
+        message={"role": "assistant", "content": response.content},
         model=response.model or request.model,
         usage_tokens=response.usage_tokens,
         session_id=session_id,
@@ -184,40 +208,24 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 
     async def event_source():
         try:
-            service = _get_chat_service(session_id, provider=request.provider)
+            command_executor = _get_command_executor()
             yield sse(StreamEvent(event="session", data={"session_id": session_id}))
-            yield sse(
-                StreamEvent(
-                    event="metadata",
-                    data={"provider": request.provider, "model": request.model},
-                )
-            )
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(
-                        label="Understanding request", status="completed"
-                    ).model_dump(),
-                )
-            )
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(label="Generating response").model_dump(),
-                )
-            )
+            if command_executor and command_executor.is_command(request.message):
+                command_result = await command_executor.execute(request.message)
+                if command_result is not None:
+                    yield sse(
+                        StreamEvent(
+                            event="token", data={"text": command_result.content}
+                        )
+                    )
+                    yield sse(StreamEvent(event="done", data={"message": "[DONE]"}))
+                    return
+
+            service = _get_chat_service(session_id, provider=request.provider)
             async for chunk in service.stream_chat(
                 request.message, provider=request.provider, model=request.model
             ):
                 yield sse(StreamEvent(event="token", data={"text": chunk}))
-            yield sse(
-                StreamEvent(
-                    event="thinking",
-                    data=ThinkingEvent(
-                        label="Finalizing response", status="completed"
-                    ).model_dump(),
-                )
-            )
             yield sse(StreamEvent(event="done", data={"message": "[DONE]"}))
         except KeyError:
             yield sse(

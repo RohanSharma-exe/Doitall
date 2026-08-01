@@ -90,6 +90,8 @@ def _request_route_label(request: Request) -> str:
     """Return a low-cardinality route label for metrics and logs."""
     route = request.scope.get("route")
     path = getattr(route, "path", None)
+    if path and request.url.path.startswith("/v1/") and not path.startswith("/v1/"):
+        return f"/v1{path}"
     return path or request.url.path
 
 

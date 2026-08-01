@@ -5,7 +5,7 @@ import pytest
 from doitall.agent.agent import Agent
 from doitall.agent.manager import AgentManager
 from doitall.models.message import UserMessage
-from doitall.providers.manager import ProviderManager
+from doitall.providers.manager import ProviderCandidate, ProviderManager
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.executor import RuntimeExecutor
 from doitall.runtime.prompt_builder import PromptBuilder
@@ -15,8 +15,10 @@ def create_executor():
     provider = AsyncMock()
     provider.chat.return_value = "OK"
 
+    provider.name = "default"
     provider_manager = Mock(spec=ProviderManager)
     provider_manager.default.return_value = provider
+    provider_manager.fallback_candidates.return_value = [ProviderCandidate(provider)]
 
     builder = PromptBuilder(
         AgentManager(
@@ -101,12 +103,16 @@ async def test_execute_uses_provider_override():
 
     override_provider = AsyncMock()
     override_provider.chat.return_value = "OVERRIDE"
+    override_provider.name = "groq"
     executor._provider_manager.get.return_value = override_provider
+    executor._provider_manager.fallback_candidates.return_value = [
+        ProviderCandidate(override_provider)
+    ]
 
     response = await executor.execute(RuntimeContext(provider="groq"))
 
     assert response == "OVERRIDE"
-    executor._provider_manager.get.assert_called_once_with("groq")
+    executor._provider_manager.fallback_candidates.assert_called_once_with("groq")
     executor._provider_manager.default.assert_not_called()
 
 
@@ -142,3 +148,55 @@ async def test_execute_does_not_modify_context():
     assert context.messages == []
     assert context.memories == []
     assert context.knowledge == []
+
+
+@pytest.mark.asyncio
+async def test_execute_falls_back_to_next_provider():
+    first_provider = AsyncMock()
+    first_provider.name = "first"
+    first_provider.chat.side_effect = RuntimeError("first failed")
+
+    second_provider = AsyncMock()
+    second_provider.name = "second"
+    second_provider.chat.return_value = "OK"
+
+    manager = ProviderManager()
+    manager.register(first_provider, default=True)
+    manager.register(second_provider)
+
+    builder = PromptBuilder(
+        AgentManager(Agent(name="Assistant", system_prompt="System"))
+    )
+    executor = RuntimeExecutor(builder, manager)
+
+    response = await executor.execute(RuntimeContext())
+
+    assert response == "OK"
+    first_provider.chat.assert_called_once()
+    second_provider.chat.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_execute_prefers_provider_override_then_fallback():
+    default_provider = AsyncMock()
+    default_provider.name = "default"
+    default_provider.chat.return_value = "DEFAULT"
+
+    override_provider = AsyncMock()
+    override_provider.name = "override"
+    override_provider.chat.side_effect = RuntimeError("override failed")
+
+    manager = ProviderManager()
+    manager.register(default_provider, default=True)
+    manager.register(override_provider)
+
+    builder = PromptBuilder(
+        AgentManager(Agent(name="Assistant", system_prompt="System"))
+    )
+    executor = RuntimeExecutor(builder, manager)
+
+    response = await executor.execute(RuntimeContext(provider="override"))
+
+    assert response == "DEFAULT"
+    override_provider.chat.assert_called_once()
+    default_provider.chat.assert_called_once()

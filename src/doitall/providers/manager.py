@@ -1,4 +1,12 @@
+from dataclasses import dataclass
+
 from doitall.providers.base import BaseProvider
+
+
+@dataclass(frozen=True)
+class ProviderCandidate:
+    provider: BaseProvider
+    is_default: bool = False
 
 
 class ProviderManager:
@@ -43,6 +51,28 @@ class ProviderManager:
 
     def all(self) -> list[BaseProvider]:
         return [self._providers[name] for name in self.names()]
+
+    def fallback_candidates(
+        self, preferred: str | None = None
+    ) -> list[ProviderCandidate]:
+        """Return providers ordered for failover: preferred/default first, then others."""
+
+        ordered_names: list[str] = []
+        first = preferred or self._default
+        if first and first in self._providers:
+            ordered_names.append(first)
+
+        for name in self.names():
+            if name not in ordered_names:
+                ordered_names.append(name)
+
+        return [
+            ProviderCandidate(
+                provider=self._providers[name],
+                is_default=name == self._default,
+            )
+            for name in ordered_names
+        ]
 
     def clear(self) -> None:
         self._providers.clear()
