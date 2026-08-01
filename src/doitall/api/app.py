@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from loguru import logger
 
-from doitall.api.routes import chat, commands, health, knowledge, providers
+from doitall.api.routes import chat, commands, health, knowledge, providers, system
 from doitall.config.settings import settings
 from doitall.core.bootstrap import async_bootstrap, bootstrap, cleanup
 from doitall.core.exceptions import DoitallError
@@ -171,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(knowledge.router, prefix="/v1")
     app.include_router(providers.router, prefix="/v1")
     app.include_router(commands.router, prefix="/v1")
+    app.include_router(system.router, prefix="/v1")
 
     @app.get(
         "/metrics",

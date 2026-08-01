@@ -25,6 +25,7 @@ class ContextAssembler:
         query: str,
         *,
         provider: str | None = None,
+        model: str | None = None,
     ) -> RuntimeContext:
         """Assemble the runtime context by calling all providers.
 
@@ -37,6 +38,7 @@ class ContextAssembler:
         context = RuntimeContext(
             query=query,
             provider=provider,
+            model=model,
         )
 
         for context_provider in self._providers:

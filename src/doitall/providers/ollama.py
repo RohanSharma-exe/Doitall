@@ -24,7 +24,7 @@ class OllamaProvider(BaseProvider):
             kwargs["tools"] = self._convert_tools(tools)
 
         response = await self.client.chat(
-            model=settings.OLLAMA_MODEL,
+            model=kwargs.pop("model", None) or settings.OLLAMA_MODEL,
             messages=messages,
             **kwargs,
         )
@@ -56,7 +56,7 @@ class OllamaProvider(BaseProvider):
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
         async for chunk in self.client.stream(
-            model=settings.OLLAMA_MODEL,
+            model=kwargs.pop("model", None) or settings.OLLAMA_MODEL,
             messages=messages,
             **kwargs,
         ):

@@ -22,7 +22,7 @@ class GeminiProvider(BaseProvider):
             kwargs["tools"] = self._convert_tools(tools)
 
         response = await self.client.chat(
-            model=settings.GEMINI_MODEL,
+            model=kwargs.pop("model", None) or settings.GEMINI_MODEL,
             messages=messages,
             **kwargs,
         )
@@ -54,7 +54,7 @@ class GeminiProvider(BaseProvider):
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
         async for chunk in self.client.stream(
-            model=settings.GEMINI_MODEL,
+            model=kwargs.pop("model", None) or settings.GEMINI_MODEL,
             messages=messages,
             **kwargs,
         ):
