@@ -80,6 +80,7 @@ uv run doitall start
 - `AgentManager` for agent lifecycle
 - `AgentExecutor` with multi-turn tool loop
 - Tool-call → execute → continue loop (full agentic cycle)
+- Tool-call and tool-result messages are persisted into conversation history
 
 ### ✅ Memory System
 - `MemoryManager` with dual-backend support
@@ -109,6 +110,7 @@ uv run doitall start
 - `DEFAULT_PROVIDER` controls the bootstrapped default provider
 - Chat requests can override the provider per request
 - `BaseProvider` — abstract base; missing `chat()` fails at class load time
+- Shared provider helpers normalize tools, token usage, and tool-call arguments
 - `LiteLLMClient` — shared client with typed error translation
 
 ### ✅ Tool / Skill System
@@ -254,9 +256,10 @@ src/doitall/
 ## Testing
 
 ```bash
-uv run pytest          # run the test suite
-uv run ruff check .    # lint
-uv run ruff format .   # format
+uv sync                       # install locked dependencies
+uv run ruff format . --check   # verify formatting
+uv run ruff check .            # lint
+uv run pytest                  # run the test suite
 ```
 
 The test suite covers agent, memory, knowledge, runtime, providers, services,

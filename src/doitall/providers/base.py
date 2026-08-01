@@ -1,7 +1,12 @@
+import json
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Any
 
 from doitall.models.provider_response import ProviderResponse
+from doitall.models.tool_call import ToolCall
+from doitall.models.tool_definition import ToolDefinition
+from doitall.providers.exceptions import ProviderResponseError
 
 
 class BaseProvider(ABC):
@@ -85,3 +90,56 @@ class BaseProvider(ABC):
 
     async def available_models(self) -> list[str]:
         return []
+
+    def _convert_tools(
+        self,
+        tools: list[ToolDefinition],
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.input_schema,
+                },
+            }
+            for tool in tools
+        ]
+
+    def _parse_tool_calls(
+        self,
+        message: Any,
+    ) -> list[ToolCall]:
+        tool_calls: list[ToolCall] = []
+
+        for call in getattr(message, "tool_calls", []) or []:
+            raw_arguments = getattr(call.function, "arguments", {})
+            tool_calls.append(
+                ToolCall(
+                    id=call.id,
+                    name=call.function.name,
+                    arguments=self._parse_tool_arguments(raw_arguments),
+                )
+            )
+
+        return tool_calls
+
+    def _parse_tool_arguments(self, arguments: Any) -> dict[str, Any]:
+        if arguments in (None, ""):
+            return {}
+
+        if isinstance(arguments, str):
+            try:
+                decoded = json.loads(arguments)
+            except json.JSONDecodeError as exc:
+                raise ProviderResponseError(
+                    "Tool call arguments are not valid JSON."
+                ) from exc
+        else:
+            decoded = arguments
+
+        if not isinstance(decoded, Mapping):
+            raise ProviderResponseError("Tool call arguments must be a JSON object.")
+
+        return dict(decoded)
