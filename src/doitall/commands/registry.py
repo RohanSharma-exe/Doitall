@@ -67,10 +67,40 @@ class CommandRegistry:
 
 def _builtin_commands() -> list[Command]:
     data: list[tuple[CommandCategory, list[str]]] = [
-        ("core", ["models", "providers", "skills", "tools", "agents", "memory", "settings", "help", "clear", "new", "history", "search", "export", "import"]),
+        (
+            "core",
+            [
+                "models",
+                "providers",
+                "skills",
+                "tools",
+                "agents",
+                "memory",
+                "settings",
+                "help",
+                "clear",
+                "new",
+                "history",
+                "search",
+                "export",
+                "import",
+            ],
+        ),
         ("development", ["system", "logs", "doctor", "health", "config", "version"]),
         ("workspace", ["files", "projects", "workspace", "index", "sync"]),
-        ("ai", ["reasoning", "thinking", "context", "prompts", "templates", "mcp", "rag", "knowledge"]),
+        (
+            "ai",
+            [
+                "reasoning",
+                "thinking",
+                "context",
+                "prompts",
+                "templates",
+                "mcp",
+                "rag",
+                "knowledge",
+            ],
+        ),
     ]
     descriptions = {
         "help": "Show available commands and shortcuts.",

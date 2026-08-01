@@ -1,188 +1,237 @@
-# 🚀 Doitall
+# Doitall
 
-> A production-first AI framework for building intelligent agents, RAG systems, persistent memory, and AI-powered applications.
+> A modular AI application framework for building agents, RAG systems, persistent memory, and multi-provider LLM products.
 
 ![Python](https://img.shields.io/badge/Python-3.14-blue)
-![Tests](https://img.shields.io/badge/Tests-see%20test%20suite-informational)
-![Code%20Style](https://img.shields.io/badge/Ruff-Clean-brightgreen)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)
+![Pydantic](https://img.shields.io/badge/Pydantic-v2-e92063)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue)
 
----
+Doitall provides the infrastructure layer most production AI apps need: agent execution, tool calling, chat sessions, semantic memory, knowledge ingestion, vector retrieval, provider adapters, API endpoints, and operational guardrails.
 
-## Vision
+## Table of contents
 
-Doitall is an open-source framework designed to make building AI applications simple, modular, and production-ready.
+- [Why Doitall?](#why-doitall)
+- [Core capabilities](#core-capabilities)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Quick start](#quick-start)
+- [REST API](#rest-api)
+- [Built-in tools](#built-in-tools)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Security and production notes](#security-and-production-notes)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
 
-Instead of focusing only on LLM calls, Doitall provides the complete infrastructure required for real-world AI systems:
+## Why Doitall?
 
-| | |
-|---|---|
-| 🤖 | Agents with tool-calling loops |
-| 🧠 | Long-term semantic memory (Qdrant) |
-| 📚 | Knowledge bases with RAG retrieval |
-| 🔎 | Semantic search & embeddings |
-| ⚡ | Isolated vector collections per domain |
-| 🔌 | Multiple AI providers (Gemini, Groq, …) |
-| 🛠 | Tool / Skill execution engine |
-| 💬 | Multi-turn conversation management |
-| 📄 | Document ingestion pipeline |
-| 🚀 | Async-first, extensible architecture |
+LLM applications usually need more than one model call. They need reliable context assembly, safe tools, provider portability, persistence, retrieval, APIs, and production controls. Doitall packages those concerns behind clear abstractions so you can build AI products instead of repeatedly rebuilding infrastructure.
 
----
+## Core capabilities
 
-## How It Works
+### Agents and tools
 
+- Agent runtime with a system prompt, conversation context, and tool-calling loop.
+- Built-in skill registry and tool executor.
+- Persisted tool-call and tool-result messages.
+- Extensible `BaseSkill` interface for custom tools.
+
+### Memory and RAG
+
+- Long-term vector memory backed by Qdrant.
+- Development-friendly in-memory store abstractions.
+- Knowledge ingestion service for chunking, embedding, and indexing documents.
+- TXT, Markdown, and recursive directory loaders.
+- Isolated Qdrant collections for memories and knowledge chunks.
+
+### Provider abstraction
+
+- Provider manager with default-provider selection.
+- OpenAI, Gemini, Groq, Anthropic, Ollama, and OpenRouter adapters.
+- Per-request provider and model overrides.
+- Shared response, usage, and tool-call normalization.
+
+### REST API and sessions
+
+- FastAPI app with chat, streaming chat, knowledge ingestion, provider listing, command listing, system, health, metrics, and session endpoints.
+- SQLite-backed session and message persistence through SQLModel/SQLAlchemy.
+- Hot in-process session cache for active conversations.
+- Request IDs and structured request logs.
+
+### Production controls
+
+- Optional API-key protection for mutating endpoints.
+- Configurable CORS origins.
+- Bounded chat and ingestion payload sizes.
+- In-process fixed-window rate limiting.
+- Prometheus-compatible HTTP request metrics.
+- Liveness and readiness probes.
+- Production startup guardrails for debug mode, wildcard CORS, and missing API keys.
+- Filesystem tool write/delete disabled by default.
+
+## Architecture
+
+```text
+User message
+  -> ChatService
+  -> ContextAssembler
+       -> ConversationProvider  (recent session history)
+       -> MemoryProvider        (semantic memory retrieval)
+       -> KnowledgeProvider     (RAG retrieval)
+       -> ToolProvider          (registered skill schemas)
+  -> PromptBuilder
+  -> LLM Provider
+  -> AgentExecutor              (tool loop)
+  -> MemoryPipeline             (extract, filter, score, store)
+  -> Response
 ```
-User Input
-  → ChatService
-  → ContextAssembler
-       ├── ConversationProvider  →  past messages
-       ├── MemoryProvider        →  relevant memories  (semantic search)
-       ├── KnowledgeProvider     →  relevant documents (RAG retrieval)
-       └── ToolProvider          →  available tools
-  → PromptBuilder  →  system + memory + knowledge + messages
-  → LLM Provider   →  Gemini / Groq / …
-  → AgentExecutor  →  tool loop until final answer
-  → MemoryPipeline →  extract → filter → score → store
-  → Response
+
+Source layout:
+
+```text
+src/doitall/
+├── agent/          Agent model, manager, executor, and factory
+├── api/            FastAPI app, routes, errors, and API models
+├── commands/       Slash-command registry
+├── config/         Settings, constants, and logging setup
+├── core/           Bootstrap, application wiring, and shared exceptions
+├── database/       SQLModel models, sessions, repository, and migrations helpers
+├── embeddings/     Embedding manager and LiteLLM embedding service
+├── knowledge/      Documents, chunks, loaders, ingestion, and vector repository
+├── memory/         Memory models, stores, Qdrant repositories, and vector stores
+├── models/         Domain models for messages, prompts, tools, sessions, and usage
+├── providers/      LLM provider adapters and provider manager
+├── runtime/        Context, prompt, memory, knowledge, tool, and execution pipeline
+├── security/       API-key auth and permission helpers
+├── serialization/  Serializers for chunks, messages, and memories
+├── services/       Chat, conversation, tool-calling, and DI services
+├── skills/         Skill base classes, registry, manager, and built-ins
+└── workspace/      Sandboxed workspace filesystem abstraction
 ```
 
----
+## Requirements
 
-## Quick Start
+- Python 3.14 or newer.
+- [`uv`](https://docs.astral.sh/uv/) for dependency management.
+- Qdrant for vector-backed memory and knowledge retrieval.
+- At least one provider API key, unless you are using a local provider such as Ollama.
+
+## Installation
 
 ```bash
-# Install
-git clone https://github.com/your-org/doitall
+git clone <your-repository-url> doitall
 cd doitall
 uv sync
-
-# Configure
-cp .env.example .env
-# Set DEFAULT_PROVIDER, provider API keys, QDRANT_URL, EMBEDDING_MODEL, etc.
-
-# Run
-uv run python -m doitall
-
-# Or start the REST API
-uv run doitall start
 ```
 
-> Note: if `.env.example` is not present in your checkout, create `.env`
-> with the settings shown in the Configuration section below.
+For development dependencies:
 
----
-
-## Features
-
-### ✅ Agent System
-- Agent model with name, system prompt, and persona
-- `AgentManager` for agent lifecycle
-- `AgentExecutor` with multi-turn tool loop
-- Tool-call → execute → continue loop (full agentic cycle)
-- Tool-call and tool-result messages are persisted into conversation history
-
-### ✅ Memory System
-- `MemoryManager` with dual-backend support
-- `InMemoryStore` for development/testing
-- `VectorMemoryStore` backed by Qdrant for semantic retrieval
-- `MemoryPipeline`: extract → filter → score → persist after every turn
-- Stored in the `"memories"` Qdrant collection
-
-### ✅ Knowledge System (RAG)
-- `VectorKnowledgeRepository` — chunk, embed, index, and search documents
-- `KnowledgeIngestionService` — end-to-end document ingest pipeline
-- `SimpleChunker` — splits documents into indexable chunks
-- **Loaders**: TXT, Markdown, recursive directory
-- `KnowledgeProvider` — injects semantically relevant docs into context
-- Stored in the `"knowledge"` Qdrant collection (isolated from memory)
-
-### ✅ Embeddings
-- `EmbeddingManager` with `LiteLLMEmbeddingService`
-- Batch embedding support
-- Provider-agnostic abstraction
-
-### ✅ Providers
-- `GeminiProvider` — chat, tool calling, response normalization
-- `GroqProvider` — chat, tool calling, response normalization
-- `OpenAIProvider`, `AnthropicProvider`, `OllamaProvider`, and `OpenrouterProvider`
-  are registered provider adapters
-- `DEFAULT_PROVIDER` controls the bootstrapped default provider
-- Chat requests can override the provider per request
-- `BaseProvider` — abstract base; missing `chat()` fails at class load time
-- Shared provider helpers normalize tools, token usage, and tool-call arguments
-- `LiteLLMClient` — shared client with typed error translation
-
-### ✅ Tool / Skill System
-- `SkillRegistry` + `SkillManager` — register and resolve skills by name
-- `ToolCallingEngine` + `ToolExecutor` — execute tool calls from LLM responses
-- **Built-in skills**: `CalculatorSkill`, `FilesystemSkill`
-- Pluggable — add any skill by subclassing `BaseSkill`
-
-### ✅ Runtime Pipeline
-- `ContextAssembler` — async provider dispatch with `RuntimeContext`
-- `PromptBuilder` — builds system + memory + knowledge + message prompt
-- `RuntimeExecutor` — sends prepared messages to LLM provider
-- `ToolMessageBuilder` — formats tool results for LLM re-submission
-- API chat sessions reuse conversation state by `session_id` for the current
-  process lifetime
-
-### ✅ Core Infrastructure
-- `bootstrap()` — single DI wiring function; correct instantiation order
-- `ServiceContainer` — lightweight DI container
-- Pydantic v2 models throughout
-- Loguru structured logging
-- `Workspace` — sandboxed file I/O
-- Optional API-key protection for mutating endpoints
-- Filesystem write/delete tool actions are disabled unless explicitly enabled
-
----
+```bash
+uv sync --dev
+```
 
 ## Configuration
 
-Common `.env` values:
+Doitall reads settings from environment variables and `.env`.
 
 ```env
-DEFAULT_PROVIDER=gemini
+# Application
+APP_NAME=Doitall
+APP_VERSION=0.1.0
+ENVIRONMENT=development
+DEBUG=true
 
-GEMINI_API_KEY=
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-GROQ_API_KEY=
-OPENROUTER_API_KEY=
+# API
+API_HOST=127.0.0.1
+API_PORT=8000
+API_KEY=
+METRICS_REQUIRE_API_KEY=false
+CORS_ORIGINS=["http://localhost:3000","http://localhost:8000","http://localhost:5173"]
 
+# Limits and safety
+SESSION_TTL_SECONDS=3600
+MAX_HISTORY_MESSAGES=50
+CHAT_MESSAGE_MAX_LENGTH=10000
+INGEST_CONTENT_MAX_LENGTH=100000
+RATE_LIMIT_ENABLED=true
+CHAT_RATE_LIMIT_PER_MINUTE=60
+INGEST_RATE_LIMIT_PER_MINUTE=20
+ENABLE_FILESYSTEM_WRITE_TOOLS=false
+FILESYSTEM_MAX_READ_BYTES=1000000
+FILESYSTEM_MAX_LIST_ENTRIES=500
+
+# Database
+DATABASE_URL=sqlite:///storage/doitall.db
+
+# Vector storage and embeddings
 QDRANT_URL=http://localhost:6333
 QDRANT_API_KEY=
 EMBEDDING_MODEL=text-embedding-3-large
 
-DATABASE_URL=sqlite:///storage/doitall.db
+# Providers
+DEFAULT_PROVIDER=gemini
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+GROQ_API_KEY=
+NVIDIA_API_KEY=
+OPENROUTER_API_KEY=
+OLLAMA_BASE_URL=http://localhost:11434
 
-# Optional. When set, POST /v1/chat and POST /v1/knowledge/ingest require
-# either Authorization: Bearer <key> or X-API-Key: <key>.
-API_KEY=
+# Default models
+OPENAI_MODEL=gpt-4o
+GEMINI_MODEL=gemini/gemini-2.5-flash
+GROQ_MODEL=groq/llama-3.3-70b-versatile
+ANTHROPIC_MODEL=anthropic/claude-3-5-sonnet-20241022
+NVIDIA_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1
+OLLAMA_MODEL=ollama/llama3.2
+OPENROUTER_MODEL=openrouter/anthropic/claude-3.5-sonnet
 
-# Keep false for production unless you intentionally want the LLM-exposed
-# filesystem tool to write/delete files inside the workspace.
-ENABLE_FILESYSTEM_WRITE_TOOLS=false
+# LLM timeout
+LLM_TIMEOUT_SECONDS=30
 ```
 
----
+> In production, set `ENVIRONMENT=production`, `DEBUG=false`, a strong `API_KEY`, explicit `CORS_ORIGINS`, and the provider/vector-store credentials your deployment requires.
 
-## REST API
+## Quick start
 
-Start the server:
+Run the CLI help:
+
+```bash
+uv run doitall --help
+```
+
+Start an interactive terminal chat:
+
+```bash
+uv run doitall chat
+```
+
+Run diagnostics:
+
+```bash
+uv run doitall doctor
+```
+
+Start the REST API:
 
 ```bash
 uv run doitall start --host 127.0.0.1 --port 8000
 ```
 
-Open docs:
+Open interactive API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-Send a chat message:
+## REST API
+
+### Chat
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/chat \
@@ -190,7 +239,7 @@ curl -X POST http://127.0.0.1:8000/v1/chat \
   -d '{"message":"What is 12 * 9?","provider":"gemini"}'
 ```
 
-Continue the same in-process session by passing the returned `session_id`:
+The response includes a `session_id`. Pass it on later requests to continue the same persisted conversation:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/chat \
@@ -198,197 +247,7 @@ curl -X POST http://127.0.0.1:8000/v1/chat \
   -d '{"session_id":"<session-id>","message":"What did I just ask?"}'
 ```
 
-Ingest a knowledge document:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/knowledge/ingest \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Notes","content":"Doitall stores RAG chunks in Qdrant."}'
-```
-
-The ingestion response includes the `document_id`, `chunk_count`, and status.
-
----
-
-## Architecture
-
-```
-src/doitall/
-
-├── agent/          Agent model, executor, tool loop
-├── api/            REST API layer
-├── config/         Settings (pydantic-settings), logging
-├── core/           bootstrap(), DI container
-├── database/       SQLAlchemy session (persistence planned)
-├── embeddings/     EmbeddingManager, LiteLLM service
-├── knowledge/      Document, Chunk, loaders, ingestion, vector repo
-├── memory/         MemoryStore, QdrantRepository, VectorMemoryStore
-├── mcp/            MCP integration (planned)
-├── models/         Domain models: Message, Memory, Document, ToolCall, …
-├── parsers/        Text parser abstraction
-├── plugins/        Plugin lifecycle (planned)
-├── providers/      Gemini, Groq, base, LiteLLM client
-├── runtime/        ContextAssembler, providers, PromptBuilder, executor
-├── security/       Optional API key auth, permissions (planned)
-├── serialization/  MemorySerializer, ChunkSerializer
-├── services/       ChatService, ConversationService, ToolCallingEngine
-├── skills/         SkillRegistry, manager, BaseSkill, built-ins
-└── workspace/      Sandboxed filesystem access
-```
-
----
-
-## Tech Stack
-
-| Tool | Role |
-|---|---|
-| Python 3.14 | Runtime |
-| Pydantic v2 | Models and validation |
-| LiteLLM | Unified LLM provider client |
-| Qdrant | Vector database (memory + knowledge) |
-| Loguru | Structured logging |
-| Ruff | Linting and formatting |
-| Pytest + pytest-asyncio | Testing |
-| uv | Package management |
-
----
-
-## Testing
-
-```bash
-uv sync                       # install locked dependencies
-uv run ruff format . --check   # verify formatting
-uv run ruff check .            # lint
-uv run pytest                  # run the test suite
-```
-
-The test suite covers agent, memory, knowledge, runtime, providers, services,
-skills, serialization, API models, and workspace behavior.
-
----
-
-## Roadmap
-
-### ✅ Complete
-- Agent system with tool loop
-- Async context assembly pipeline
-- Long-term memory (semantic + in-memory)
-- RAG knowledge system with isolated vector collections
-- Embedding layer
-- Multi-provider support (Gemini, Groq)
-- Tool / skill execution engine
-- Document loaders (TXT, Markdown, directory)
-- DI container + bootstrap
-- REST API routes for chat, health, provider listing, and knowledge ingestion
-- Optional API-key authentication for mutating endpoints
-- Per-request provider overrides
-- In-process session reuse by `session_id`
-- Knowledge ingestion responses with chunk counts
-
-### 🔥 Next (Phase 1 — Production Hardening)
-- [ ] Persist chat sessions beyond process memory
-- [ ] Real provider health checks that validate credentials/connectivity
-- [ ] Conversation persistence (SQLite/Postgres via `database/`)
-- [ ] Real `MemoryFilter` (min-length, deduplication)
-- [ ] Real `MemoryScorer` (embedding similarity)
-- [ ] Per-agent permission scoping for tools
-
-### 📡 Phase 2 — REST API
-- [x] FastAPI routes: `POST /chat`, `GET /health`, `GET /providers`, `POST /knowledge/ingest`
-- [ ] Streaming endpoint (`POST /chat/stream` with SSE)
-- [x] Pydantic request/response schemas
-
-### 🔐 Phase 3 — Security
-- [x] Optional API key authentication
-- [ ] Per-agent permission scoping
-- [ ] Rate limiting
-
-### 📄 Phase 4 — More Loaders
-- [ ] PDF loader
-- [ ] HTML / web page loader
-- [ ] DOCX loader
-- [ ] GitHub repo loader
-
-### 🌊 Phase 5 — Streaming
-- [ ] `BaseProvider.stream()` implementation
-- [ ] `ChatService.stream_chat()` generator
-- [ ] API streaming endpoint
-
-### 🤖 Phase 6 — Multi-Agent
-- [ ] Agent orchestrator
-- [ ] Agent-to-agent messaging
-- [ ] Shared memory pool with per-agent namespacing
-
-### 🔌 Phase 7 — MCP + Plugins
-- [ ] Model Context Protocol adapter
-- [ ] Plugin lifecycle (load → init → register → teardown)
-
-### 📊 Phase 8 — Observability
-- [ ] OpenTelemetry spans on LLM calls
-- [ ] Token count + latency tracking
-- [ ] Prometheus metrics export
-
----
-
-## Development
-
-```bash
-# Format
-uv run ruff format .
-
-# Lint
-uv run ruff check .
-
-# Test
-uv run pytest
-
-# Test with output
-uv run pytest -v
-
-# Run a single test file
-uv run pytest tests/runtime/test_context_assembler.py
-```
-
----
-
-## Philosophy
-
-> Build infrastructure once. Build AI applications forever.
-
-Doitall is designed to be the foundation under your AI application — not a demo, not a prototype, but a real framework with proper abstractions, async pipelines, isolated storage, and a growing test suite.
-
----
-
-## Contributing
-
-Contributions, issues, and discussions are welcome.
-
-If you're working on AI agents, RAG systems, LLM infrastructure, or production AI engineering, open an issue or submit a pull request.
-
----
-
-⭐ Star the repository if you find it useful!
-
----
-
-## Production Readiness
-
-Doitall now includes the core production controls from the readiness roadmap:
-
-- **Persistent sessions**: chat sessions and messages are stored in SQLite via SQLModel, with Alembic migration scaffolding for schema history.
-- **Bounded context**: full history remains available through the session APIs, while provider prompts use a configurable sliding window (`MAX_HISTORY_MESSAGES`) to reduce context-window failures.
-- **Input validation**: chat and ingestion payloads have bounded lengths (`CHAT_MESSAGE_MAX_LENGTH`, `INGEST_CONTENT_MAX_LENGTH`) plus metadata limits.
-- **Rate limiting**: `/v1/chat`, `/v1/chat/stream`, and `/v1/knowledge/ingest` have configurable in-process fixed-window limits. For multi-replica production deployments, replace the in-process limiter with Redis or another shared store.
-- **Request tracing**: every API response includes `X-Request-ID`; incoming `X-Request-ID` values are preserved when supplied.
-- **Structured request logs**: request method, path, status, latency, and request ID are logged for correlation.
-- **Metrics**: `/metrics` exposes basic Prometheus-compatible HTTP request counters.
-- **Health probes**: `/v1/health/live` is a fast liveness check; `/v1/health/ready` checks dependencies and returns `503` when not ready. `/v1/health` remains as a backward-compatible readiness alias.
-- **Production guardrails**: startup refuses `ENVIRONMENT=production` when `DEBUG=true`, wildcard CORS is configured, or `API_KEY` is missing.
-- **Docker deployment**: `Dockerfile` and `docker-compose.yml` run the API with Qdrant and persistent volumes.
-
-### Streaming chat and progress events
-
-Use the SSE endpoint for lower-latency responses:
+### Streaming chat
 
 ```bash
 curl -N -X POST http://127.0.0.1:8000/v1/chat/stream \
@@ -396,51 +255,130 @@ curl -N -X POST http://127.0.0.1:8000/v1/chat/stream \
   -d '{"message":"Explain Doitall in one paragraph","provider":"gemini"}'
 ```
 
-The stream sends:
+The SSE stream emits session metadata, user-visible progress events, token chunks, a final done event, and error events when needed. Doitall does not expose hidden model chain-of-thought.
 
-- `event: session` with the session ID.
-- `data:` chunks containing assistant text as it arrives.
-- `event: done` when complete.
-- `event: error` if provider execution fails.
-
-Doitall does **not** expose hidden model chain-of-thought. If you want user-visible progress, build UI affordances around the SSE `session`, chunk, `done`, and `error` events, and around tool-call/result messages that are safe to show.
-
-### Built-in tools
-
-Built-in tools currently include:
-
-- `calculator` — safe arithmetic evaluation.
-- `filesystem` — workspace read/list/exists plus optional write/delete when `ENABLE_FILESYSTEM_WRITE_TOOLS=true`.
-- `time` — current date/time for an IANA timezone such as `UTC` or `America/New_York`.
-
----
-
-## CI on GitHub
-
-This repo includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs automatically on pushes and pull requests:
-
-1. Checks out the repository.
-2. Installs `uv`.
-3. Installs Python 3.14.
-4. Installs locked project dependencies with `uv sync --dev --frozen`.
-5. Runs `uv run ruff check .`.
-6. Runs `uv run pytest`.
-
-If your default branch is not `main`, `master`, or `work`, update the workflow branch list.
-
----
-
-## Deployment with Docker Compose
+### Knowledge ingestion
 
 ```bash
-export API_KEY='replace-me'
+curl -X POST http://127.0.0.1:8000/v1/knowledge/ingest \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Notes","content":"Doitall stores RAG chunks in Qdrant."}'
+```
+
+### Sessions
+
+```bash
+curl http://127.0.0.1:8000/v1/sessions
+curl http://127.0.0.1:8000/v1/sessions/<session-id>
+curl -X DELETE http://127.0.0.1:8000/v1/sessions/<session-id>
+```
+
+### Health and metrics
+
+```bash
+curl http://127.0.0.1:8000/v1/health/live
+curl http://127.0.0.1:8000/v1/health/ready
+curl http://127.0.0.1:8000/metrics
+```
+
+## Built-in tools
+
+- `calculator` — safe arithmetic evaluation.
+- `filesystem` — workspace read/list/exists actions, plus write/delete only when `ENABLE_FILESYSTEM_WRITE_TOOLS=true`.
+- `time` — current date/time for an IANA timezone such as `UTC` or `America/New_York`.
+
+## Development
+
+Format code:
+
+```bash
+uv run ruff format .
+```
+
+Lint code:
+
+```bash
+uv run ruff check .
+```
+
+Run tests:
+
+```bash
+uv run pytest
+```
+
+Run a specific test file:
+
+```bash
+uv run pytest tests/api/test_sessions_endpoints.py
+```
+
+## Testing
+
+The test suite covers API routes, provider adapters, domain models, tools, services, knowledge ingestion, database sessions, commands, and bootstrap behavior.
+
+Recommended local check before opening a PR:
+
+```bash
+uv run ruff format . --check
+uv run ruff check .
+uv run pytest
+```
+
+## Deployment
+
+This repository includes Docker and Docker Compose support.
+
+```bash
+export API_KEY='replace-me-with-a-strong-secret'
 docker compose up --build
 ```
 
 The Compose stack starts:
 
-- `api` on port `8000`.
-- `qdrant` on port `6333`.
-- Persistent volumes for API storage and Qdrant data.
+- the Doitall API on port `8000`;
+- Qdrant on port `6333`;
+- persistent volumes for API storage and Qdrant data.
 
-For production, set explicit `CORS_ORIGINS`, provider API keys, `DEFAULT_PROVIDER`, and keep `DEBUG=false`.
+For production deployments, configure explicit CORS origins, provider API keys, vector-store credentials, persistent database storage, and `DEBUG=false`.
+
+## Security and production notes
+
+- Set `API_KEY` to protect mutating endpoints.
+- Set `METRICS_REQUIRE_API_KEY=true` when metrics should not be public.
+- Keep `ENABLE_FILESYSTEM_WRITE_TOOLS=false` unless you intentionally want LLM-exposed filesystem write/delete actions inside the workspace.
+- Do not use wildcard CORS in production.
+- The built-in rate limiter is in-process and best suited for single-process deployments. Use Redis or another shared store for multi-replica rate limiting.
+- HTTP metrics use route templates to avoid high-cardinality labels for dynamic routes.
+- `/v1/health/live` is a fast liveness probe. `/v1/health/ready` checks dependencies and returns `503` when dependencies are unavailable.
+
+## Roadmap
+
+Completed foundations:
+
+- Agent execution with tool-calling loops.
+- Runtime context assembly.
+- Vector-backed memory and RAG knowledge retrieval.
+- Multi-provider LLM abstraction.
+- Persisted chat sessions and messages.
+- API endpoints for chat, streaming chat, sessions, commands, providers, health, metrics, and knowledge ingestion.
+- Optional API-key auth, payload limits, rate limiting, request IDs, and production startup guardrails.
+
+Planned improvements:
+
+- Redis-backed distributed rate limiting.
+- Provider connectivity health checks.
+- Streaming implementations across all provider adapters.
+- Additional loaders for PDF, HTML, DOCX, and GitHub repositories.
+- Per-agent permission scopes for tools.
+- OpenTelemetry tracing and Prometheus metrics expansion.
+- MCP and plugin lifecycle integration.
+- Multi-agent orchestration.
+
+## Contributing
+
+Contributions are welcome. Before submitting a pull request, run formatting, linting, and tests, and include a clear summary of the change and any operational impact.
+
+## License
+
+Apache-2.0
