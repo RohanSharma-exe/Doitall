@@ -32,13 +32,13 @@ class Doitall:
 
         self._is_running = True
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         """Stop the application and clean up resources."""
         if not self._is_running:
             return
 
         self._is_running = False
-        cleanup()
+        await cleanup()
 
     @property
     def is_running(self) -> bool:
