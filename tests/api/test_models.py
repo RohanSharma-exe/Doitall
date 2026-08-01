@@ -25,3 +25,16 @@ def test_chat_response_usage_tokens_are_isolated():
 
     assert first.usage_tokens == {"total": 10}
     assert second.usage_tokens == {}
+
+
+def test_chat_response_includes_assistant_message_shape():
+    response = ChatResponse(response="hello")
+
+    assert response.message == {}
+
+    response = ChatResponse(
+        response="hello", message={"role": "assistant", "content": "hello"}
+    )
+
+    assert response.message["role"] == "assistant"
+    assert response.message["content"] == "hello"

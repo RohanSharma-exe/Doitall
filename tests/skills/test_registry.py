@@ -58,3 +58,13 @@ def test_all_returns_registered_skills():
 
     assert len(skills) == 1
     assert skills[0].name == "echo"
+
+
+def test_builtin_registry_includes_web_tools():
+    from doitall.skills.builtin import register_builtin_skills
+
+    registry = SkillRegistry()
+    register_builtin_skills(registry)
+
+    assert registry.exists("web_search")
+    assert registry.exists("web_fetch")

@@ -37,9 +37,14 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Response body from a chat turn."""
+    """Response body from a chat turn.
+
+    Includes a ChatGPT/Claude-style assistant message object while keeping
+    the legacy ``response`` string for existing clients.
+    """
 
     response: str
+    message: dict[str, str] = Field(default_factory=dict)
     model: str | None = None
     usage_tokens: dict[str, int] = Field(default_factory=dict)
     session_id: str | None = None
