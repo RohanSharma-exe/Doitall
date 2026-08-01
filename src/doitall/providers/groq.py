@@ -22,7 +22,7 @@ class GroqProvider(BaseProvider):
             kwargs["tools"] = self._convert_tools(tools)
 
         response = await self.client.chat(
-            model=settings.GROQ_MODEL,
+            model=kwargs.pop("model", None) or settings.GROQ_MODEL,
             messages=messages,
             **kwargs,
         )
@@ -54,7 +54,7 @@ class GroqProvider(BaseProvider):
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
         async for chunk in self.client.stream(
-            model=settings.GROQ_MODEL,
+            model=kwargs.pop("model", None) or settings.GROQ_MODEL,
             messages=messages,
             **kwargs,
         ):

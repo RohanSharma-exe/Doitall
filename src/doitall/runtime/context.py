@@ -22,6 +22,9 @@ class RuntimeContext(BaseModel):
     provider: str | None = None
     """Optional provider override for this runtime execution."""
 
+    model: str | None = None
+    """Optional model override for this runtime execution."""
+
     messages: list[Message] = Field(default_factory=list)
     """Conversation history messages."""
 

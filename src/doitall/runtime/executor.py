@@ -88,7 +88,7 @@ class RuntimeExecutor:
         )
         messages = self.prepare(context)
         async for chunk in provider.stream(
-            self._payload(messages), tools=context.tools
+            self._payload(messages), tools=context.tools, model=context.model
         ):
             yield chunk
 
@@ -112,4 +112,6 @@ class RuntimeExecutor:
             else self._provider_manager.default()
         )
 
-        return await provider.chat(self._payload(messages), tools=context.tools)
+        return await provider.chat(
+            self._payload(messages), tools=context.tools, model=context.model
+        )

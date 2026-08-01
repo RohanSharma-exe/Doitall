@@ -25,11 +25,17 @@ class ChatService:
         content: str,
         *,
         provider: str | None = None,
+        model: str | None = None,
     ):
         user_message = UserMessage(content=content)
         self._conversation_service.add_message(user_message)
 
-        context = await self._context_assembler.assemble(content, provider=provider)
+        if model:
+            context = await self._context_assembler.assemble(
+                content, provider=provider, model=model
+            )
+        else:
+            context = await self._context_assembler.assemble(content, provider=provider)
         original_context_length = len(context.messages)
 
         if context.tools:
@@ -61,7 +67,18 @@ class ChatService:
         content: str,
         *,
         provider: str | None = None,
+        model: str | None = None,
     ) -> str:
+        response = await self.chat_response(content, provider=provider, model=model)
+        return response.content
+
+    async def chat_response(
+        self,
+        content: str,
+        *,
+        provider: str | None = None,
+        model: str | None = None,
+    ):
         user_message = UserMessage(
             content=content,
         )
@@ -74,11 +91,18 @@ class ChatService:
             context = await self._context_assembler.assemble(
                 content,
                 provider=provider,
+                model=model,
             )
         else:
-            context = await self._context_assembler.assemble(
-                content,
-            )
+            if model:
+                context = await self._context_assembler.assemble(
+                    content,
+                    model=model,
+                )
+            else:
+                context = await self._context_assembler.assemble(
+                    content,
+                )
 
         original_context_length = len(context.messages)
 
@@ -116,4 +140,4 @@ class ChatService:
             # prevent the user from receiving the LLM's response.
             logger.warning(f"Memory pipeline failed (non-fatal): {e}")
 
-        return response.content
+        return response

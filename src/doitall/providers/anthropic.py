@@ -22,7 +22,7 @@ class AnthropicProvider(BaseProvider):
             kwargs["tools"] = self._convert_tools(tools)
 
         response = await self.client.chat(
-            model=settings.ANTHROPIC_MODEL,
+            model=kwargs.pop("model", None) or settings.ANTHROPIC_MODEL,
             messages=messages,
             **kwargs,
         )
@@ -54,7 +54,7 @@ class AnthropicProvider(BaseProvider):
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
         async for chunk in self.client.stream(
-            model=settings.ANTHROPIC_MODEL,
+            model=kwargs.pop("model", None) or settings.ANTHROPIC_MODEL,
             messages=messages,
             **kwargs,
         ):

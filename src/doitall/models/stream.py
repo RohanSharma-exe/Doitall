@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 StreamEventType = Literal[
     "session",
+    "metadata",
     "thinking",
     "token",
     "error",

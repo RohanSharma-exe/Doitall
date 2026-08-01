@@ -115,9 +115,10 @@ async def chat(request: ChatRequest) -> ChatResponse:
 
     try:
         service = _get_chat_service(session_id, provider=request.provider)
-        response_text = await service.chat(
+        response = await service.chat_response(
             request.message,
             provider=request.provider,
+            model=request.model,
         )
     except KeyError as exc:
         raise HTTPException(
@@ -131,7 +132,9 @@ async def chat(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=500, detail=CHAT_FAILED) from exc
 
     return ChatResponse(
-        response=response_text,
+        response=response.content,
+        model=response.model or request.model,
+        usage_tokens=response.usage_tokens,
         session_id=session_id,
     )
 
@@ -156,6 +159,12 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
             yield sse(StreamEvent(event="session", data={"session_id": session_id}))
             yield sse(
                 StreamEvent(
+                    event="metadata",
+                    data={"provider": request.provider, "model": request.model},
+                )
+            )
+            yield sse(
+                StreamEvent(
                     event="thinking",
                     data=ThinkingEvent(
                         label="Understanding request", status="completed"
@@ -169,7 +178,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
                 )
             )
             async for chunk in service.stream_chat(
-                request.message, provider=request.provider
+                request.message, provider=request.provider, model=request.model
             ):
                 yield sse(StreamEvent(event="token", data={"text": chunk}))
             yield sse(

@@ -26,6 +26,10 @@ class ChatRequest(BaseModel):
         default=None,
         description="Override the default provider (e.g. 'openai', 'groq').",
     )
+    model: str | None = Field(
+        default=None,
+        description="Override the provider's configured default model.",
+    )
     session_id: str | None = Field(
         default=None,
         description="Optional session identifier for tracking.",
@@ -37,6 +41,7 @@ class ChatResponse(BaseModel):
 
     response: str
     model: str | None = None
+    usage_tokens: dict[str, int] = Field(default_factory=dict)
     session_id: str | None = None
 
 
