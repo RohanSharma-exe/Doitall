@@ -59,6 +59,12 @@ class SessionRepository:
                 db.add(record)
                 db.commit()
                 db.refresh(record)
+            elif record.provider != provider:
+                record.provider = provider
+                record.last_accessed_at = _now()
+                db.add(record)
+                db.commit()
+                db.refresh(record)
             return record
 
     def touch(self, session_id: str) -> None:
@@ -66,6 +72,16 @@ class SessionRepository:
         with self._get_session() as db:
             record = db.get(SessionRecord, session_id)
             if record:
+                record.last_accessed_at = _now()
+                db.add(record)
+                db.commit()
+
+    def update_provider(self, session_id: str, provider: str | None) -> None:
+        """Persist the provider most recently requested for a session."""
+        with self._get_session() as db:
+            record = db.get(SessionRecord, session_id)
+            if record:
+                record.provider = provider
                 record.last_accessed_at = _now()
                 db.add(record)
                 db.commit()

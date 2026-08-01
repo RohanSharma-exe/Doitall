@@ -2,6 +2,7 @@
 
 import time
 import uuid
+from dataclasses import dataclass
 from threading import Lock
 
 import orjson
@@ -26,6 +27,7 @@ from doitall.runtime.runtime_factory import RuntimeFactory
 from doitall.security.auth import require_api_key
 from doitall.services.chat_service import ChatService
 from doitall.services.conversation_service import ConversationService
+from doitall.services.registry import container
 
 router = APIRouter()
 
@@ -34,20 +36,40 @@ _lock = Lock()
 
 # ---------------------------------------------------------------------------
 # Hot session cache — avoids a DB round-trip on every turn for active chats.
-# Stores (ChatService, last_accessed_timestamp).  The DB is the source of
-# truth; this cache is purely a performance optimisation.
+# Stores ChatService plus metadata needed to safely refresh/recreate hot sessions.
+# The DB is the source of truth; this cache is purely a performance optimisation.
 # ---------------------------------------------------------------------------
-_hot_sessions: dict[str, tuple[ChatService, float]] = {}
 
-# Shared repository instance (one per process)
+
+@dataclass
+class HotSession:
+    service: ChatService
+    last_accessed: float
+    provider: str | None = None
+
+
+_hot_sessions: dict[str, HotSession] = {}
+
+# Fallback repository for direct route-unit tests that do not run bootstrap.
 _repo = SessionRepository()
+
+
+def _get_repo() -> SessionRepository:
+    """Return the bootstrapped session repository when available."""
+    if container.has("session_repository"):
+        return container.resolve("session_repository")
+    return _repo
 
 
 def _evict_expired() -> None:
     """Evict sessions that have been idle longer than SESSION_TTL_SECONDS."""
     now = time.monotonic()
     ttl = settings.SESSION_TTL_SECONDS
-    expired = [sid for sid, (_, ts) in _hot_sessions.items() if now - ts > ttl]
+    expired = [
+        sid
+        for sid, hot_session in _hot_sessions.items()
+        if now - hot_session.last_accessed > ttl
+    ]
     for sid in expired:
         del _hot_sessions[sid]
 
@@ -58,8 +80,9 @@ def _make_chat_service(session_id: str, provider: str | None = None) -> ChatServ
         name="Doitall",
         system_prompt="You are a helpful AI assistant.",
     )
+    repo = _get_repo()
     # Ensure session row exists in DB
-    _repo.get_or_create(
+    repo.get_or_create(
         session_id=session_id,
         agent_name=agent.name,
         system_prompt=agent.system_prompt,
@@ -67,7 +90,7 @@ def _make_chat_service(session_id: str, provider: str | None = None) -> ChatServ
     )
     conversation_service = ConversationService(
         session_id=session_id,
-        repository=_repo,
+        repository=repo,
     )
     return _factory.create(agent, conversation_service=conversation_service)
 
@@ -76,16 +99,22 @@ def _get_chat_service(session_id: str, provider: str | None = None) -> ChatServi
     """Return a hot-cached ChatService, creating one if needed."""
     with _lock:
         _evict_expired()
-        if session_id not in _hot_sessions:
+        hot_session = _hot_sessions.get(session_id)
+        now = time.monotonic()
+        if hot_session is None or hot_session.provider != provider:
             service = _make_chat_service(session_id, provider)
-            _hot_sessions[session_id] = (service, time.monotonic())
+            _hot_sessions[session_id] = HotSession(
+                service=service,
+                last_accessed=now,
+                provider=provider,
+            )
+            if hot_session is not None:
+                _get_repo().update_provider(session_id, provider)
         else:
-            # Refresh timestamp on every hit
-            service, _ = _hot_sessions[session_id]
-            _hot_sessions[session_id] = (service, time.monotonic())
+            hot_session.last_accessed = now
 
-        _repo.touch(session_id)
-        return _hot_sessions[session_id][0]
+        _get_repo().touch(session_id)
+        return _hot_sessions[session_id].service
 
 
 # ---------------------------------------------------------------------------
@@ -223,14 +252,15 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 )
 def list_sessions() -> list[SessionSummary]:
     """Return a summary of all sessions ordered by most recently active."""
-    sessions = _repo.list_sessions()
+    repo = _get_repo()
+    sessions = repo.list_sessions()
     return [
         SessionSummary(
             session_id=s.session_id,
             agent_name=s.agent_name,
             created_at=s.created_at.isoformat(),
             last_accessed_at=s.last_accessed_at.isoformat(),
-            message_count=_repo.message_count(s.session_id),
+            message_count=repo.message_count(s.session_id),
         )
         for s in sessions
     ]
@@ -245,15 +275,17 @@ def list_sessions() -> list[SessionSummary]:
 )
 def get_session(session_id: str) -> SessionDetail:
     """Return full session metadata and complete message history."""
-    if not _repo.exists(session_id):
+    repo = _get_repo()
+    if not repo.exists(session_id):
         raise HTTPException(status_code=404, detail="Session not found")
 
-    sessions = _repo.list_sessions()
+    repo = _get_repo()
+    sessions = repo.list_sessions()
     session = next((s for s in sessions if s.session_id == session_id), None)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    messages = _repo.get_messages(session_id)
+    messages = repo.get_messages(session_id)
     return SessionDetail(
         session_id=session.session_id,
         agent_name=session.agent_name,
@@ -285,6 +317,6 @@ def delete_session(session_id: str) -> None:
     with _lock:
         _hot_sessions.pop(session_id, None)
 
-    deleted = _repo.delete(session_id)
+    deleted = _get_repo().delete(session_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")

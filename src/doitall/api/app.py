@@ -30,6 +30,9 @@ from doitall.security.auth import require_metrics_api_key
 # use an external store (Redis) for horizontally scaled deployments.
 _rate_buckets: dict[str, deque[float]] = defaultdict(deque)
 _request_counts: dict[str, int] = defaultdict(int)
+_last_rate_bucket_cleanup = 0.0
+_RATE_LIMIT_WINDOW_SECONDS = 60
+_RATE_BUCKET_CLEANUP_INTERVAL_SECONDS = 60
 
 
 def _rate_limit_for_path(path: str) -> int | None:
@@ -50,15 +53,44 @@ def _rate_limit_key(request: Request) -> str:
     return f"ip:{host}"
 
 
+def _prune_rate_buckets(now: float) -> None:
+    """Remove stale rate-limit buckets to prevent unbounded memory growth."""
+    global _last_rate_bucket_cleanup
+
+    if now - _last_rate_bucket_cleanup < _RATE_BUCKET_CLEANUP_INTERVAL_SECONDS:
+        return
+
+    cutoff = now - _RATE_LIMIT_WINDOW_SECONDS
+    stale_keys = []
+    for key, bucket in _rate_buckets.items():
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if not bucket:
+            stale_keys.append(key)
+
+    for key in stale_keys:
+        del _rate_buckets[key]
+
+    _last_rate_bucket_cleanup = now
+
+
 def _is_rate_limited(key: str, limit: int, now: float) -> bool:
+    _prune_rate_buckets(now)
     bucket = _rate_buckets[key]
-    cutoff = now - 60
+    cutoff = now - _RATE_LIMIT_WINDOW_SECONDS
     while bucket and bucket[0] < cutoff:
         bucket.popleft()
     if len(bucket) >= limit:
         return True
     bucket.append(now)
     return False
+
+
+def _request_route_label(request: Request) -> str:
+    """Return a low-cardinality route label for metrics and logs."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    return path or request.url.path
 
 
 # ---------------------------------------------------------------------------
@@ -140,14 +172,13 @@ def create_app() -> FastAPI:
             raise
 
         duration_ms = (time.perf_counter() - start) * 1000
-        _request_counts[
-            f"{request.method} {request.url.path} {response.status_code}"
-        ] += 1
+        route_label = _request_route_label(request)
+        _request_counts[f"{request.method} {route_label} {response.status_code}"] += 1
         response.headers["X-Request-ID"] = request_id
         bound_logger.info(
             "HTTP request method={} path={} status={} duration_ms={:.2f}",
             request.method,
-            request.url.path,
+            route_label,
             response.status_code,
             duration_ms,
         )

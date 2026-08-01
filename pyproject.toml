@@ -1,7 +1,7 @@
 [project]
 name = "doitall"
 version = "0.1.0"
-description = "Add your description here"
+description = "A modular AI framework for agents, RAG, persistent memory, and multi-provider LLM applications."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [

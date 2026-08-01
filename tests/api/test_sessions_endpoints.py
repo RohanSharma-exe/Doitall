@@ -1,8 +1,8 @@
 """Tests for session management API endpoints.
 
 The FastAPI lifespan is mocked out so Qdrant / LiteLLM are never contacted.
-The route's module-level ``_repo`` is replaced with a fresh SessionRepository
-backed by an isolated in-memory SQLite engine — no monkeypatching required.
+The bootstrapped ``session_repository`` service is replaced with a fresh
+SessionRepository backed by an isolated in-memory SQLite engine.
 
 StaticPool is mandatory: Starlette's TestClient runs the ASGI app in a worker
 thread.  SQLite's default SingletonThreadPool gives each thread its OWN
@@ -21,6 +21,7 @@ from sqlmodel import SQLModel, create_engine
 
 import doitall.database.models  # noqa: F401 — registers table metadata
 from doitall.database.session_repository import SessionRepository
+from doitall.services.registry import container
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -65,7 +66,8 @@ def client(repo):
     """TestClient with lifespan mocked (no Qdrant / LiteLLM)."""
     import doitall.api.routes.chat as chat_mod
 
-    chat_mod._repo = repo
+    container.clear()
+    container.register("session_repository", repo)
     chat_mod._hot_sessions.clear()
 
     from doitall.api.app import app
@@ -77,6 +79,8 @@ def client(repo):
         TestClient(app) as c,
     ):
         yield c
+
+    container.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +151,10 @@ def test_delete_session_success(client, repo):
 def test_delete_session_evicts_hot_cache(client, repo):
     import doitall.api.routes.chat as chat_mod
 
-    chat_mod._hot_sessions["evict-me"] = (MagicMock(), 9999999.0)
+    chat_mod._hot_sessions["evict-me"] = chat_mod.HotSession(
+        service=MagicMock(),
+        last_accessed=9999999.0,
+    )
     repo.get_or_create("evict-me")
 
     resp = client.delete("/v1/sessions/evict-me")
@@ -162,3 +169,38 @@ def test_commands_endpoint_lists_builtin_commands(client):
     names = {command["name"] for command in resp.json()["commands"]}
     assert "/models" in names
     assert "/thinking" in names
+
+
+def test_get_chat_service_recreates_cache_when_provider_changes(client, repo):
+    import doitall.api.routes.chat as chat_mod
+
+    first_service = MagicMock()
+    second_service = MagicMock()
+
+    with patch.object(
+        chat_mod._factory,
+        "create",
+        side_effect=[first_service, second_service],
+    ):
+        service1 = chat_mod._get_chat_service("provider-switch", provider="openai")
+        service2 = chat_mod._get_chat_service("provider-switch", provider="groq")
+
+    assert service1 is first_service
+    assert service2 is second_service
+    assert chat_mod._hot_sessions["provider-switch"].provider == "groq"
+    session = next(s for s in repo.list_sessions() if s.session_id == "provider-switch")
+    assert session.provider == "groq"
+
+
+def test_get_chat_service_reuses_cache_for_same_provider(client):
+    import doitall.api.routes.chat as chat_mod
+
+    service = MagicMock()
+
+    with patch.object(chat_mod._factory, "create", return_value=service) as create:
+        service1 = chat_mod._get_chat_service("same-provider", provider="openai")
+        service2 = chat_mod._get_chat_service("same-provider", provider="openai")
+
+    assert service1 is service
+    assert service2 is service
+    create.assert_called_once()
