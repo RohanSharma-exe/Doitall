@@ -153,3 +153,12 @@ def test_delete_session_evicts_hot_cache(client, repo):
     resp = client.delete("/v1/sessions/evict-me")
     assert resp.status_code == 204
     assert "evict-me" not in chat_mod._hot_sessions
+
+
+def test_commands_endpoint_lists_builtin_commands(client):
+    resp = client.get("/v1/commands")
+
+    assert resp.status_code == 200
+    names = {command["name"] for command in resp.json()["commands"]}
+    assert "/models" in names
+    assert "/thinking" in names

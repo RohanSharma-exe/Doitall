@@ -1,5 +1,6 @@
 import asyncio
 import functools
+from fnmatch import fnmatch
 from typing import Any
 
 from doitall.config.settings import settings
@@ -73,7 +74,18 @@ class FilesystemSkill(BaseSkill):
         self,
         path: str,
     ) -> str:
-        return self._workspace.read_text(path)
+        self._ensure_allowed(path)
+        resolved = self._workspace.resolve(path)
+        if resolved.stat().st_size > settings.FILESYSTEM_MAX_READ_BYTES:
+            raise PermissionError(
+                "File is too large to read through the filesystem tool."
+            )
+        data = resolved.read_bytes()
+        if b"\x00" in data:
+            raise PermissionError(
+                "Binary files cannot be read through the filesystem tool."
+            )
+        return data.decode("utf-8")
 
     def _write(
         self,
@@ -83,6 +95,7 @@ class FilesystemSkill(BaseSkill):
         if not settings.ENABLE_FILESYSTEM_WRITE_TOOLS:
             raise PermissionError("Filesystem writes are disabled.")
 
+        self._ensure_allowed(path)
         self._workspace.write_text(
             path,
             content,
@@ -96,6 +109,7 @@ class FilesystemSkill(BaseSkill):
         if not settings.ENABLE_FILESYSTEM_WRITE_TOOLS:
             raise PermissionError("Filesystem deletes are disabled.")
 
+        self._ensure_allowed(path)
         self._workspace.delete(path)
         return True
 
@@ -103,13 +117,23 @@ class FilesystemSkill(BaseSkill):
         self,
         path: str = ".",
     ) -> list[str]:
-        return [
-            str(file.relative_to(self._workspace.root))
-            for file in self._workspace.list_files(path)
-        ]
+        self._ensure_allowed(path)
+        files = self._workspace.list_files(path)
+        if len(files) > settings.FILESYSTEM_MAX_LIST_ENTRIES:
+            raise PermissionError("Directory contains too many entries to list safely.")
+        return [str(file.relative_to(self._workspace.root)) for file in files]
 
     def _exists(
         self,
         path: str,
     ) -> bool:
+        self._ensure_allowed(path)
         return self._workspace.exists(path)
+
+    def _ensure_allowed(self, path: str = ".") -> None:
+        normalized = str(path).replace("\\", "/").lstrip("/") or "."
+        for pattern in settings.FILESYSTEM_DENY_PATTERNS:
+            if fnmatch(normalized, pattern) or fnmatch(
+                normalized.split("/", 1)[0], pattern
+            ):
+                raise PermissionError("Path is denied by filesystem tool policy.")

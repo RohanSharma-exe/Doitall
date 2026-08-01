@@ -15,15 +15,16 @@ import uuid
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from loguru import logger
 
-from doitall.api.routes import chat, health, knowledge, providers
+from doitall.api.routes import chat, commands, health, knowledge, providers
 from doitall.config.settings import settings
 from doitall.core.bootstrap import async_bootstrap, bootstrap, cleanup
 from doitall.core.exceptions import DoitallError
+from doitall.security.auth import require_metrics_api_key
 
 # In-process fixed-window request limiter. Suitable for single-process deployments;
 # use an external store (Redis) for horizontally scaled deployments.
@@ -169,8 +170,13 @@ def create_app() -> FastAPI:
     app.include_router(chat.router, prefix="/v1")
     app.include_router(knowledge.router, prefix="/v1")
     app.include_router(providers.router, prefix="/v1")
+    app.include_router(commands.router, prefix="/v1")
 
-    @app.get("/metrics", include_in_schema=False)
+    @app.get(
+        "/metrics",
+        include_in_schema=False,
+        dependencies=[Depends(require_metrics_api_key)],
+    )
     async def metrics():
         lines = ["# TYPE doitall_http_requests_total counter"]
         for key, count in sorted(_request_counts.items()):
