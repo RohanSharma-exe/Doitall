@@ -121,7 +121,7 @@ class MessageDetail(BaseModel):
 
     role: str
     content: str
-    tool_calls: list[dict] = []
+    tool_calls: list[dict] = Field(default_factory=list)
     created_at: str
 
 

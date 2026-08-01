@@ -30,12 +30,25 @@ class ChatService:
         self._conversation_service.add_message(user_message)
 
         context = await self._context_assembler.assemble(content, provider=provider)
-        response_chunks: list[str] = []
-        async for chunk in self._agent_executor.stream(context):
-            response_chunks.append(chunk)
-            yield chunk
+        original_context_length = len(context.messages)
 
-        assistant_message = AssistantMessage(content="".join(response_chunks))
+        if context.tools:
+            response = await self._agent_executor.execute(context)
+            for message in context.messages[original_context_length:]:
+                self._conversation_service.add_message(message)
+            if response.content:
+                yield response.content
+            assistant_message = AssistantMessage(
+                content=response.content,
+                tool_calls=response.tool_calls,
+            )
+        else:
+            response_chunks: list[str] = []
+            async for chunk in self._agent_executor.stream(context):
+                response_chunks.append(chunk)
+                yield chunk
+
+            assistant_message = AssistantMessage(content="".join(response_chunks))
         self._conversation_service.add_message(assistant_message)
 
         try:
@@ -67,9 +80,14 @@ class ChatService:
                 content,
             )
 
+        original_context_length = len(context.messages)
+
         response = await self._agent_executor.execute(
             context,
         )
+
+        for message in context.messages[original_context_length:]:
+            self._conversation_service.add_message(message)
 
         if response.usage_tokens:
             logger.info(

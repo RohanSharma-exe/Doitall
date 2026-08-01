@@ -92,3 +92,105 @@ async def test_chat_service_memory_failure_is_non_fatal():
     response = await service.chat("Hello")
 
     assert response == "Still works!"
+
+
+class ToolContextAssembler(ContextAssembler):
+    def __init__(self, conversation: ConversationService) -> None:
+        self._conversation = conversation
+
+    async def assemble(self, query: str, provider: str | None = None) -> RuntimeContext:
+        from doitall.models.tool_definition import ToolDefinition
+
+        return RuntimeContext(
+            messages=self._conversation.messages(),
+            provider=provider,
+            tools=[
+                ToolDefinition(
+                    name="calculator",
+                    description="Calculate arithmetic",
+                    input_schema={"type": "object"},
+                )
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_chat_service_persists_tool_loop_messages():
+    from doitall.models.tool_call import ToolCall
+
+    conversation = ConversationService()
+    assembler = ToolContextAssembler(conversation)
+
+    executor = AgentExecutor(
+        runtime=type("Runtime", (), {})(),
+        tool_engine=type("ToolEngine", (), {})(),
+        tool_message_builder=type("Builder", (), {})(),
+    )
+
+    async def execute(context):
+        from doitall.models.message import AssistantMessage, ToolMessage
+
+        context.messages.append(
+            AssistantMessage(
+                tool_calls=[
+                    ToolCall(
+                        id="call_1",
+                        name="calculator",
+                        arguments={"expression": "2+2"},
+                    )
+                ]
+            )
+        )
+        context.messages.append(
+            ToolMessage(content="4", tool_call_id="call_1", name="calculator")
+        )
+        return ProviderResponse(content="The answer is 4", model="test")
+
+    executor.execute = AsyncMock(side_effect=execute)
+    memory_pipeline = AsyncMock(spec=MemoryPipeline)
+
+    service = ChatService(
+        conversation_service=conversation,
+        context_assembler=assembler,
+        agent_executor=executor,
+        memory_pipeline=memory_pipeline,
+    )
+
+    response = await service.chat("What is 2+2?")
+
+    assert response == "The answer is 4"
+    messages = conversation.messages()
+    assert [message.role for message in messages] == [
+        MessageRole.USER,
+        MessageRole.ASSISTANT,
+        MessageRole.TOOL,
+        MessageRole.ASSISTANT,
+    ]
+    assert messages[1].tool_calls[0].name == "calculator"
+    assert messages[2].content == "4"
+    assert messages[3].content == "The answer is 4"
+
+
+@pytest.mark.asyncio
+async def test_stream_chat_uses_tool_loop_when_tools_are_available():
+    conversation = ConversationService()
+    assembler = ToolContextAssembler(conversation)
+
+    executor = AsyncMock(spec=AgentExecutor)
+    executor.execute.return_value = ProviderResponse(
+        content="streamed final", model="test"
+    )
+    memory_pipeline = AsyncMock(spec=MemoryPipeline)
+
+    service = ChatService(
+        conversation_service=conversation,
+        context_assembler=assembler,
+        agent_executor=executor,
+        memory_pipeline=memory_pipeline,
+    )
+
+    chunks = [chunk async for chunk in service.stream_chat("Use a tool")]
+
+    assert chunks == ["streamed final"]
+    executor.execute.assert_awaited_once()
+    assert conversation.messages()[-1].content == "streamed final"

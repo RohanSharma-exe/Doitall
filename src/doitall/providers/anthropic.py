@@ -1,10 +1,7 @@
-import json
 from typing import Any
 
 from doitall.config.settings import settings
 from doitall.models.provider_response import ProviderResponse
-from doitall.models.tool_call import ToolCall
-from doitall.models.tool_definition import ToolDefinition
 from doitall.providers.base import BaseProvider
 from doitall.providers.client import LiteLLMClient
 
@@ -96,36 +93,3 @@ class AnthropicProvider(BaseProvider):
             return True
         except Exception:
             return False
-
-    def _convert_tools(
-        self,
-        tools: list[ToolDefinition],
-    ) -> list[dict]:
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.input_schema,
-                },
-            }
-            for tool in tools
-        ]
-
-    def _parse_tool_calls(
-        self,
-        message: Any,
-    ) -> list[ToolCall]:
-        tool_calls: list[ToolCall] = []
-
-        for call in getattr(message, "tool_calls", []) or []:
-            tool_calls.append(
-                ToolCall(
-                    id=call.id,
-                    name=call.function.name,
-                    arguments=json.loads(call.function.arguments),
-                )
-            )
-
-        return tool_calls

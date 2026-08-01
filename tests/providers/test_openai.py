@@ -170,3 +170,42 @@ def test_parse_tool_calls_with_call():
     assert result[0].id == "call_abc"
     assert result[0].name == "search"
     assert result[0].arguments == {"query": "doitall"}
+
+
+def test_parse_tool_calls_accepts_dict_arguments():
+    provider = OpenAIProvider()
+
+    fn = MagicMock()
+    fn.name = "search"
+    fn.arguments = {"query": "doitall"}
+
+    call = MagicMock()
+    call.id = "call_dict"
+    call.function = fn
+
+    message = MagicMock()
+    message.tool_calls = [call]
+
+    result = provider._parse_tool_calls(message)
+
+    assert result[0].arguments == {"query": "doitall"}
+
+
+def test_parse_tool_calls_rejects_malformed_json():
+    from doitall.providers.exceptions import ProviderResponseError
+
+    provider = OpenAIProvider()
+
+    fn = MagicMock()
+    fn.name = "search"
+    fn.arguments = "{not-json"
+
+    call = MagicMock()
+    call.id = "call_bad"
+    call.function = fn
+
+    message = MagicMock()
+    message.tool_calls = [call]
+
+    with pytest.raises(ProviderResponseError, match="not valid JSON"):
+        provider._parse_tool_calls(message)
