@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     # Seconds of inactivity before an in-memory chat session is evicted.
     SESSION_TTL_SECONDS: int = 3600
+    MAX_HISTORY_MESSAGES: int = 50
+    CHAT_MESSAGE_MAX_LENGTH: int = 10000
+    INGEST_CONTENT_MAX_LENGTH: int = 100000
+    RATE_LIMIT_ENABLED: bool = True
+    CHAT_RATE_LIMIT_PER_MINUTE: int = 60
+    INGEST_RATE_LIMIT_PER_MINUTE: int = 20
 
     # ----------------------------
     # Database

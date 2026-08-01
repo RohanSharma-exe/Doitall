@@ -1,9 +1,9 @@
 from loguru import logger
 from qdrant_client import AsyncQdrantClient
 
+import doitall.database.models  # noqa: F401 — registers SQLModel table metadata
 from doitall.config.logging import configure_logging
 from doitall.config.settings import settings
-import doitall.database.models  # noqa: F401 — registers SQLModel table metadata
 from doitall.database.session import engine, init_db
 from doitall.database.session_repository import SessionRepository
 from doitall.embeddings.manager import EmbeddingManager
@@ -46,10 +46,11 @@ def bootstrap() -> None:
     configure_logging()
 
     if settings.ENVIRONMENT == "production" and settings.DEBUG:
-        logger.warning(
-            "DEBUG=True is set in a production environment. "
-            "This will log SQL queries and stack traces. Set DEBUG=False."
-        )
+        raise RuntimeError("Refusing to start production with DEBUG=True")
+    if settings.ENVIRONMENT == "production" and "*" in settings.CORS_ORIGINS:
+        raise RuntimeError("Refusing to start production with wildcard CORS origins")
+    if settings.ENVIRONMENT == "production" and not settings.API_KEY:
+        raise RuntimeError("Refusing to start production without API_KEY")
 
     # Initialize database
     init_db()

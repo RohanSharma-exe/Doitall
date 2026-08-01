@@ -4,6 +4,7 @@ import uuid
 from threading import Lock
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 
 from doitall.agent.agent import Agent
 from doitall.api.models import (
@@ -127,6 +128,32 @@ async def chat(request: ChatRequest) -> ChatResponse:
         response=response_text,
         session_id=session_id,
     )
+
+
+@router.post(
+    "/chat/stream",
+    summary="Stream a chat response",
+    tags=["chat"],
+    dependencies=[Depends(require_api_key)],
+)
+async def chat_stream(request: ChatRequest) -> StreamingResponse:
+    """Stream a chat response as Server-Sent Events."""
+    session_id = request.session_id or str(uuid.uuid4())
+
+    async def event_source():
+        try:
+            service = _get_chat_service(session_id, provider=request.provider)
+            yield f"event: session\ndata: {session_id}\n\n"
+            async for chunk in service.stream_chat(request.message, provider=request.provider):
+                safe_chunk = chunk.replace("\r", " ").replace("\n", "\ndata: ")
+                yield f"data: {safe_chunk}\n\n"
+            yield "event: done\ndata: [DONE]\n\n"
+        except KeyError:
+            yield f"event: error\ndata: Unknown provider: {request.provider}\n\n"
+        except Exception as exc:
+            yield f"event: error\ndata: {str(exc)}\n\n"
+
+    return StreamingResponse(event_source(), media_type="text/event-stream")
 
 
 # ---------------------------------------------------------------------------

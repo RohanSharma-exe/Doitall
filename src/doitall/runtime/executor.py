@@ -47,26 +47,7 @@ class RuntimeExecutor:
         """
         return self._prompt_builder.build(context)
 
-    async def execute(
-        self,
-        context: RuntimeContext,
-    ) -> ProviderResponse:
-        """Execute the request against the configured provider.
-
-        Args:
-            context: The runtime context containing conversation state and tools.
-
-        Returns:
-            The provider's response with content and tool calls.
-        """
-        messages = self.prepare(context)
-
-        provider = (
-            self._provider_manager.get(context.provider)
-            if context.provider
-            else self._provider_manager.default()
-        )
-
+    def _payload(self, messages: list[Message]) -> list[dict[str, Any]]:
         payload: list[dict[str, Any]] = []
 
         for message in messages:
@@ -94,4 +75,39 @@ class RuntimeExecutor:
 
             payload.append(item)
 
-        return await provider.chat(payload, tools=context.tools)
+        return payload
+
+    async def stream(
+        self,
+        context: RuntimeContext,
+    ):
+        provider = (
+            self._provider_manager.get(context.provider)
+            if context.provider
+            else self._provider_manager.default()
+        )
+        messages = self.prepare(context)
+        async for chunk in provider.stream(self._payload(messages), tools=context.tools):
+            yield chunk
+
+    async def execute(
+        self,
+        context: RuntimeContext,
+    ) -> ProviderResponse:
+        """Execute the request against the configured provider.
+
+        Args:
+            context: The runtime context containing conversation state and tools.
+
+        Returns:
+            The provider's response with content and tool calls.
+        """
+        messages = self.prepare(context)
+
+        provider = (
+            self._provider_manager.get(context.provider)
+            if context.provider
+            else self._provider_manager.default()
+        )
+
+        return await provider.chat(self._payload(messages), tools=context.tools)

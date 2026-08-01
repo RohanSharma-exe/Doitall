@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from doitall.config.settings import settings
 from doitall.models.conversation import Conversation
 from doitall.models.message import (
     AssistantMessage,
@@ -117,6 +118,14 @@ class ConversationService:
     def messages(self) -> list[Message]:
         self._ensure_hydrated()
         return list(self._conversation.messages)
+
+    def context_messages(self, max_messages: int | None = None) -> list[Message]:
+        """Return a bounded sliding window for provider context."""
+        self._ensure_hydrated()
+        limit = settings.MAX_HISTORY_MESSAGES if max_messages is None else max_messages
+        if limit <= 0:
+            return []
+        return list(self._conversation.messages[-limit:])
 
     def clear(self) -> None:
         self._conversation.messages.clear()

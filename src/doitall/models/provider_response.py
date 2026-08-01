@@ -15,3 +15,5 @@ class ProviderResponse(BaseModel):
     finish_reason: str | None = None
 
     model: str | None = None
+
+    usage_tokens: dict[str, int] = Field(default_factory=dict)
