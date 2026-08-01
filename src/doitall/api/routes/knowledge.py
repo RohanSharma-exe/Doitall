@@ -1,7 +1,9 @@
 """Knowledge ingestion route — add documents to the RAG knowledge base."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 
+from doitall.api.errors import INGEST_FAILED
 from doitall.api.models import IngestRequest, IngestResponse
 from doitall.core.exceptions import DoitallError, ValidationError
 from doitall.knowledge.document import Document
@@ -40,9 +42,11 @@ async def ingest(request: IngestRequest) -> IngestResponse:
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except DoitallError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.warning("Knowledge ingestion domain failure: {}", exc)
+        raise HTTPException(status_code=500, detail=INGEST_FAILED) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Ingestion failed: {exc}") from exc
+        logger.exception("Knowledge ingestion failed")
+        raise HTTPException(status_code=500, detail=INGEST_FAILED) from exc
 
     return IngestResponse(
         document_id=result.document_id,

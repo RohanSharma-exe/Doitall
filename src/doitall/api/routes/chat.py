@@ -4,10 +4,13 @@ import time
 import uuid
 from threading import Lock
 
+import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from loguru import logger
 
 from doitall.agent.agent import Agent
+from doitall.api.errors import CHAT_FAILED, STREAM_FAILED
 from doitall.api.models import (
     ChatRequest,
     ChatResponse,
@@ -18,6 +21,7 @@ from doitall.api.models import (
 from doitall.config.settings import settings
 from doitall.core.exceptions import DoitallError
 from doitall.database.session_repository import SessionRepository
+from doitall.models.stream import StreamEvent, ThinkingEvent
 from doitall.runtime.runtime_factory import RuntimeFactory
 from doitall.security.auth import require_api_key
 from doitall.services.chat_service import ChatService
@@ -123,7 +127,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
     except DoitallError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Internal error: {exc}") from exc
+        logger.exception("Chat request failed session_id={}", session_id)
+        raise HTTPException(status_code=500, detail=CHAT_FAILED) from exc
 
     return ChatResponse(
         response=response_text,
@@ -141,20 +146,56 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
     """Stream a chat response as Server-Sent Events."""
     session_id = request.session_id or str(uuid.uuid4())
 
+    def sse(event: StreamEvent) -> str:
+        payload = orjson.dumps(event.model_dump()).decode("utf-8")
+        return f"id: {event.id}\nevent: {event.event}\ndata: {payload}\n\n"
+
     async def event_source():
         try:
             service = _get_chat_service(session_id, provider=request.provider)
-            yield f"event: session\ndata: {session_id}\n\n"
+            yield sse(StreamEvent(event="session", data={"session_id": session_id}))
+            yield sse(
+                StreamEvent(
+                    event="thinking",
+                    data=ThinkingEvent(
+                        label="Understanding request", status="completed"
+                    ).model_dump(),
+                )
+            )
+            yield sse(
+                StreamEvent(
+                    event="thinking",
+                    data=ThinkingEvent(label="Generating response").model_dump(),
+                )
+            )
             async for chunk in service.stream_chat(
                 request.message, provider=request.provider
             ):
-                safe_chunk = chunk.replace("\r", " ").replace("\n", "\ndata: ")
-                yield f"data: {safe_chunk}\n\n"
-            yield "event: done\ndata: [DONE]\n\n"
+                yield sse(StreamEvent(event="token", data={"text": chunk}))
+            yield sse(
+                StreamEvent(
+                    event="thinking",
+                    data=ThinkingEvent(
+                        label="Finalizing response", status="completed"
+                    ).model_dump(),
+                )
+            )
+            yield sse(StreamEvent(event="done", data={"message": "[DONE]"}))
         except KeyError:
-            yield f"event: error\ndata: Unknown provider: {request.provider}\n\n"
-        except Exception as exc:
-            yield f"event: error\ndata: {str(exc)}\n\n"
+            yield sse(
+                StreamEvent(
+                    event="error",
+                    data={"code": "unknown_provider", "message": "Unknown provider."},
+                )
+            )
+        except Exception:
+            logger.exception("Chat stream failed session_id={}", session_id)
+            yield sse(
+                StreamEvent(
+                    event="error",
+                    data={"code": "stream_failed", "message": STREAM_FAILED},
+                )
+            )
 
     return StreamingResponse(event_source(), media_type="text/event-stream")
 

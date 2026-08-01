@@ -3,6 +3,7 @@ from doitall.models.message import Message, SystemMessage
 from doitall.runtime.constants import (
     KNOWLEDGE_HEADER,
     MEMORY_HEADER,
+    UNTRUSTED_CONTEXT_INSTRUCTIONS,
 )
 from doitall.runtime.context import RuntimeContext
 
@@ -77,11 +78,13 @@ class PromptBuilder:
         if not context.memories:
             return
 
-        memory_text = "\n".join(memory.content for memory in context.memories)
+        memory_text = "\n".join(
+            f"<memory>\n{memory.content}\n</memory>" for memory in context.memories
+        )
 
         messages.append(
             SystemMessage(
-                content=f"{MEMORY_HEADER}{memory_text}",
+                content=f"{UNTRUSTED_CONTEXT_INSTRUCTIONS}{MEMORY_HEADER}{memory_text}",
             )
         )
 
@@ -99,10 +102,13 @@ class PromptBuilder:
         if not context.knowledge:
             return
 
-        knowledge_text = "\n".join(document.content for document in context.knowledge)
+        knowledge_text = "\n".join(
+            f"<document>\n{document.content}\n</document>"
+            for document in context.knowledge
+        )
 
         messages.append(
             SystemMessage(
-                content=f"{KNOWLEDGE_HEADER}{knowledge_text}",
+                content=f"{UNTRUSTED_CONTEXT_INSTRUCTIONS}{KNOWLEDGE_HEADER}{knowledge_text}",
             )
         )
