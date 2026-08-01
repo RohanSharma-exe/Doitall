@@ -108,7 +108,7 @@ async def lifespan(_app: FastAPI):
     await async_bootstrap()  # async: create Qdrant collections on running loop
     yield
     logger.info("Shutting down Doitall API…")
-    cleanup()
+    await cleanup()
 
 
 # ---------------------------------------------------------------------------

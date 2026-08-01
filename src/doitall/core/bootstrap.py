@@ -161,7 +161,7 @@ async def async_bootstrap() -> None:
     logger.info("Qdrant collections ready.")
 
 
-def cleanup() -> None:
+async def cleanup() -> None:
     """Clean up resources when shutting down the application."""
 
     global _bootstrap_has_run
@@ -175,14 +175,9 @@ def cleanup() -> None:
         # Close async Qdrant client
         if container.has("qdrant_client"):
             qdrant_client: AsyncQdrantClient = container.resolve("qdrant_client")
-            import asyncio
 
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(qdrant_client.close())
-                else:
-                    loop.run_until_complete(qdrant_client.close())
+                await qdrant_client.close()
                 logger.info("Qdrant client closed")
             except Exception as e:
                 logger.warning(f"Failed to close Qdrant client: {e}")

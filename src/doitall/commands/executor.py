@@ -6,6 +6,7 @@ from shlex import split
 from doitall.commands import CommandRegistry
 from doitall.providers.manager import ProviderManager
 from doitall.skills.registry import SkillRegistry
+from doitall.skills.manager import SkillManager
 
 
 @dataclass(frozen=True)
@@ -23,10 +24,12 @@ class SlashCommandExecutor:
         registry: CommandRegistry,
         provider_manager: ProviderManager,
         skill_registry: SkillRegistry,
+        skill_manager: SkillManager,
     ) -> None:
         self._registry = registry
         self._provider_manager = provider_manager
         self._skill_registry = skill_registry
+        self._skill_manager = skill_manager
 
     def is_command(self, content: str) -> bool:
         return content.strip().startswith("/")
@@ -54,12 +57,25 @@ class SlashCommandExecutor:
         if command_name in {"/tools", "/toolbox", "/skills"}:
             return CommandResult(self._tools())
 
-        return CommandResult(
-            content=(
-                f"`{command.name}` is available in the command palette, but does not "
-                "need a local chat action yet."
-            )
-        )
+        tool_map = {
+            "/calculator": "calculator",
+            "/time": "time",
+            "/filesystem": "filesystem",
+            "/web-search": "web_search",
+            "/web-fetch": "web_fetch",
+        }
+
+        skill_name = tool_map.get(command_name)
+
+        if skill_name:
+            if not self._skill_registry.exists(skill_name):
+                return CommandResult(
+                    content=f"Skill '{skill_name}' is not registered."
+                )
+
+            result = await self._skill_manager.execute(skill_name)
+
+            return CommandResult(content=str(result))
 
     def _help(self) -> str:
         commands = self._registry.list()
