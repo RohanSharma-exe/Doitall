@@ -1,6 +1,6 @@
 import pytest
 
-from doitall.core.exceptions import ProviderError, ValidationError
+from doitall.core.exceptions import ValidationError
 from doitall.memory.in_memory_store import InMemoryStore
 from doitall.memory.manager import MemoryManager
 from doitall.models.memory import Memory

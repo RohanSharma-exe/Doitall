@@ -1,15 +1,14 @@
 """SessionRepository — thin data-access layer for sessions and messages."""
-from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlmodel import Session, select
+from sqlmodel import select
 
 from doitall.database.models import MessageRecord, SessionRecord
 from doitall.database.session import get_session as _default_get_session
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class SessionRepository:

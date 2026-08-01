@@ -54,7 +54,7 @@ class ConversationService:
         self,
         conversation: Conversation | None = None,
         session_id: str | None = None,
-        repository: "SessionRepository | None" = None,
+        repository: SessionRepository | None = None,
     ) -> None:
         self._conversation = conversation or Conversation()
         self._session_id = session_id

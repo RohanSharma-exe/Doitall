@@ -1,6 +1,6 @@
 """Database session management."""
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -26,7 +26,7 @@ def init_db() -> None:
 
 
 @contextmanager
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[Session]:
     """Context-manager that yields a database session and guarantees close.
 
     Usage::

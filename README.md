@@ -365,3 +365,79 @@ If you're working on AI agents, RAG systems, LLM infrastructure, or production A
 ---
 
 ⭐ Star the repository if you find it useful!
+
+---
+
+## Production Readiness
+
+Doitall now includes the core production controls from the readiness roadmap:
+
+- **Persistent sessions**: chat sessions and messages are stored in SQLite via SQLModel, with Alembic migration scaffolding for schema history.
+- **Bounded context**: full history remains available through the session APIs, while provider prompts use a configurable sliding window (`MAX_HISTORY_MESSAGES`) to reduce context-window failures.
+- **Input validation**: chat and ingestion payloads have bounded lengths (`CHAT_MESSAGE_MAX_LENGTH`, `INGEST_CONTENT_MAX_LENGTH`) plus metadata limits.
+- **Rate limiting**: `/v1/chat`, `/v1/chat/stream`, and `/v1/knowledge/ingest` have configurable in-process fixed-window limits. For multi-replica production deployments, replace the in-process limiter with Redis or another shared store.
+- **Request tracing**: every API response includes `X-Request-ID`; incoming `X-Request-ID` values are preserved when supplied.
+- **Structured request logs**: request method, path, status, latency, and request ID are logged for correlation.
+- **Metrics**: `/metrics` exposes basic Prometheus-compatible HTTP request counters.
+- **Health probes**: `/v1/health/live` is a fast liveness check; `/v1/health/ready` checks dependencies and returns `503` when not ready. `/v1/health` remains as a backward-compatible readiness alias.
+- **Production guardrails**: startup refuses `ENVIRONMENT=production` when `DEBUG=true`, wildcard CORS is configured, or `API_KEY` is missing.
+- **Docker deployment**: `Dockerfile` and `docker-compose.yml` run the API with Qdrant and persistent volumes.
+
+### Streaming chat and progress events
+
+Use the SSE endpoint for lower-latency responses:
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/v1/chat/stream \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Explain Doitall in one paragraph","provider":"gemini"}'
+```
+
+The stream sends:
+
+- `event: session` with the session ID.
+- `data:` chunks containing assistant text as it arrives.
+- `event: done` when complete.
+- `event: error` if provider execution fails.
+
+Doitall does **not** expose hidden model chain-of-thought. If you want user-visible progress, build UI affordances around the SSE `session`, chunk, `done`, and `error` events, and around tool-call/result messages that are safe to show.
+
+### Built-in tools
+
+Built-in tools currently include:
+
+- `calculator` — safe arithmetic evaluation.
+- `filesystem` — workspace read/list/exists plus optional write/delete when `ENABLE_FILESYSTEM_WRITE_TOOLS=true`.
+- `time` — current date/time for an IANA timezone such as `UTC` or `America/New_York`.
+
+---
+
+## CI on GitHub
+
+This repo includes a GitHub Actions workflow at `.github/workflows/ci.yml` that runs automatically on pushes and pull requests:
+
+1. Checks out the repository.
+2. Installs `uv`.
+3. Installs Python 3.14.
+4. Installs locked project dependencies with `uv sync --dev --frozen`.
+5. Runs `uv run ruff check .`.
+6. Runs `uv run pytest`.
+
+If your default branch is not `main`, `master`, or `work`, update the workflow branch list.
+
+---
+
+## Deployment with Docker Compose
+
+```bash
+export API_KEY='replace-me'
+docker compose up --build
+```
+
+The Compose stack starts:
+
+- `api` on port `8000`.
+- `qdrant` on port `6333`.
+- Persistent volumes for API storage and Qdrant data.
+
+For production, set explicit `CORS_ORIGINS`, provider API keys, `DEFAULT_PROVIDER`, and keep `DEBUG=false`.
