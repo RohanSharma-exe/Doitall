@@ -105,3 +105,26 @@ async def test_write_denied_by_default(tmp_path: Path):
             path="hello.txt",
             content="Hello",
         )
+
+
+@pytest.mark.asyncio
+async def test_read_denies_secret_files(tmp_path: Path):
+    (tmp_path / ".env").write_text("SECRET=value")
+    skill = FilesystemSkill(Workspace(tmp_path))
+
+    with pytest.raises(PermissionError):
+        await skill.execute(action="read", path=".env")
+
+
+@pytest.mark.asyncio
+async def test_read_denies_oversized_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(
+        "doitall.skills.filesystem.settings.FILESYSTEM_MAX_READ_BYTES", 3
+    )
+    (tmp_path / "large.txt").write_text("large")
+    skill = FilesystemSkill(Workspace(tmp_path))
+
+    with pytest.raises(PermissionError):
+        await skill.execute(action="read", path="large.txt")

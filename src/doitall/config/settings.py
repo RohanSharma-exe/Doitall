@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     API_HOST: str = "127.0.0.1"
     API_PORT: int = 8000
     API_KEY: str = ""
+    METRICS_REQUIRE_API_KEY: bool = False
 
     # Allowed CORS origins. In development the default permits localhost
     # frontends. In production set this to your actual frontend origin(s),
@@ -51,6 +52,23 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     CHAT_RATE_LIMIT_PER_MINUTE: int = 60
     INGEST_RATE_LIMIT_PER_MINUTE: int = 20
+    FILESYSTEM_MAX_READ_BYTES: int = 1_000_000
+    FILESYSTEM_MAX_LIST_ENTRIES: int = 500
+    FILESYSTEM_DENY_PATTERNS: list[str] = Field(
+        default=[
+            ".env",
+            ".env.*",
+            "*.pem",
+            "*.key",
+            "id_rsa",
+            "id_ed25519",
+            "*.db",
+            "*.sqlite",
+            "*.sqlite3",
+            "logs/*",
+            "storage/*",
+        ]
+    )
 
     # ----------------------------
     # Database
