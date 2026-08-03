@@ -5,8 +5,8 @@ from shlex import split
 
 from doitall.commands import CommandRegistry
 from doitall.providers.manager import ProviderManager
-from doitall.skills.registry import SkillRegistry
 from doitall.skills.manager import SkillManager
+from doitall.skills.registry import SkillRegistry
 
 
 @dataclass(frozen=True)
@@ -22,13 +22,13 @@ class SlashCommandExecutor:
     def __init__(
         self,
         registry: CommandRegistry,
-        provider_manager: ProviderManager,
-        skill_registry: SkillRegistry,
-        skill_manager: SkillManager,
-    ) -> None:
+        providers: ProviderManager,
+        skills: SkillRegistry,
+        skill_manager: SkillManager | None = None,
+    ):
         self._registry = registry
-        self._provider_manager = provider_manager
-        self._skill_registry = skill_registry
+        self._provider_manager = providers
+        self._skill_registry = skills
         self._skill_manager = skill_manager
 
     def is_command(self, content: str) -> bool:
@@ -39,12 +39,13 @@ class SlashCommandExecutor:
         if not parts:
             return None
 
-        name = parts[0]
+        command_name = parts[0]
+        arguments = parts[1:]
         try:
-            command = self._registry.get(name)
+            command = self._registry.get(command_name)
         except KeyError:
             return CommandResult(
-                content=f"Unknown command `{name}`. Try `/help` to see available commands."
+                content=f"Unknown command `{command_name}`. Try `/help` to see available commands."
             )
 
         command_name = command.name
@@ -58,22 +59,34 @@ class SlashCommandExecutor:
             return CommandResult(self._tools())
 
         tool_map = {
-            "/calculator": "calculator",
-            "/time": "time",
-            "/filesystem": "filesystem",
-            "/web-search": "web_search",
-            "/web-fetch": "web_fetch",
+            "/calculator": ("calculator", self._calculator_args),
+            "/time": ("time", self._time_args),
+            "/filesystem": ("filesystem", self._filesystem_args),
+            "/web-search": ("web_search", self._web_search_args),
+            "/web-fetch": ("web_fetch", self._web_fetch_args),
         }
 
-        skill_name = tool_map.get(command_name)
+        tool = tool_map.get(command_name)
 
-        if skill_name:
+        if tool:
+            skill_name, argument_builder = tool
+
             if not self._skill_registry.exists(skill_name):
                 return CommandResult(
                     content=f"Skill '{skill_name}' is not registered."
                 )
 
-            result = await self._skill_manager.execute(skill_name)
+            kwargs = argument_builder(arguments)
+
+            if self._skill_manager is None:
+                return CommandResult(
+                    content="Skill execution is not available."
+                )
+
+            result = await self._skill_manager.execute(
+                skill_name,
+                **kwargs,
+            )
 
             return CommandResult(content=str(result))
 
@@ -122,3 +135,98 @@ class SlashCommandExecutor:
         for definition in self._skill_registry.definitions():
             lines.append(f"- `{definition.name}` — {definition.description}")
         return "\n".join(lines)
+
+    def _calculator_args(
+        self,
+        arguments: list[str],
+    ) -> dict[str, str]:
+        if not arguments:
+            raise ValueError(
+                "Usage: /calculator <expression>"
+            )
+
+        return {
+            "expression": " ".join(arguments),
+        }
+
+
+    def _time_args(
+        self,
+        arguments: list[str],
+    ) -> dict[str, str]:
+        return {
+            "timezone": arguments[0] if arguments else "UTC",
+        }
+
+
+    def _web_search_args(
+        self,
+        arguments: list[str],
+    ) -> dict[str, str]:
+        if not arguments:
+            raise ValueError(
+                "Usage: /web-search <query>"
+            )
+
+        return {
+            "query": " ".join(arguments),
+        }
+
+
+    def _web_fetch_args(
+        self,
+        arguments: list[str],
+    ) -> dict[str, str]:
+        if not arguments:
+            raise ValueError(
+                "Usage: /web-fetch <url>"
+            )
+
+        return {
+            "url": arguments[0],
+        }
+
+
+    def _filesystem_args(
+        self,
+        arguments: list[str],
+    ) -> dict:
+        if not arguments:
+            raise ValueError(
+                "Usage: /filesystem <action> [path] [content]"
+            )
+
+        action = arguments[0]
+
+        if action == "list":
+            return {
+                "action": "list",
+                "path": arguments[1] if len(arguments) > 1 else ".",
+            }
+
+        if action in {"read", "exists", "delete"}:
+            if len(arguments) < 2:
+                raise ValueError(
+                    f"Usage: /filesystem {action} <path>"
+                )
+
+            return {
+                "action": action,
+                "path": arguments[1],
+            }
+
+        if action == "write":
+            if len(arguments) < 3:
+                raise ValueError(
+                    "Usage: /filesystem write <path> <content>"
+                )
+
+            return {
+                "action": "write",
+                "path": arguments[1],
+                "content": " ".join(arguments[2:]),
+            }
+
+        raise ValueError(
+            f"Unknown filesystem action: {action}"
+        )

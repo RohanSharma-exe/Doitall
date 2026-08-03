@@ -24,6 +24,7 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "sqlmodel>=0.0.39",
     "typer>=0.27.0",
+    "tzdata>=2026.3",
     "uvicorn>=0.51.0",
 ]
 

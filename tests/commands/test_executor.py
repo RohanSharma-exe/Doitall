@@ -4,17 +4,34 @@ import pytest
 
 from doitall.commands import default_registry
 from doitall.commands.executor import SlashCommandExecutor
+from doitall.models.provider_response import ProviderResponse
+from doitall.providers.base import BaseProvider
 from doitall.providers.manager import ProviderManager
 from doitall.skills.builtin import register_builtin_skills
 from doitall.skills.registry import SkillRegistry
 
 
-class FakeProvider:
-    def __init__(self, name: str, models: list[str], healthy: bool = True) -> None:
-        self.name = name
+class FakeProvider(BaseProvider):
+    def __init__(
+        self,
+        name: str,
+        models: list[str],
+        healthy: bool = True,
+    ) -> None:
+        super().__init__(name)
+
         self._models = models
         self._healthy = healthy
-        self.chat = AsyncMock()
+        self._chat = AsyncMock(
+            return_value=ProviderResponse(content="")
+        )
+
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        **kwargs,
+    ) -> ProviderResponse:
+        return await self._chat(messages, **kwargs)
 
     async def health_check(self) -> bool:
         return self._healthy
