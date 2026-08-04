@@ -91,4 +91,3 @@ class ProviderManager:
         """Clear all registered providers and reset default selection."""
         self._providers.clear()
         self._default = None
-

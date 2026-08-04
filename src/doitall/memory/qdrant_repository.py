@@ -84,4 +84,3 @@ class QdrantRepository(VectorRepository):
     async def count(self) -> int:
         """Return count of stored memory points in Qdrant."""
         return await self.vector_store.count()
-

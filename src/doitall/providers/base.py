@@ -6,7 +6,7 @@ streaming, embeddings, tool conversion, and response parsing.
 
 import json
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
 from typing import Any
 
 from doitall.models.provider_response import ProviderResponse
@@ -38,9 +38,12 @@ class BaseProvider(ABC):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ):
+    ) -> AsyncIterator[Any]:
         """Stream text generation chunks from the provider."""
+        _ = (messages, kwargs)
         raise NotImplementedError(f"{self.name} does not support streaming.")
+        if False:
+            yield
 
     async def embedding(
         self,
@@ -164,4 +167,3 @@ class BaseProvider(ABC):
             raise ProviderResponseError("Tool call arguments must be a JSON object.")
 
         return dict(decoded)
-

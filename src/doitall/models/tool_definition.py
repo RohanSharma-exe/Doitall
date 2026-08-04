@@ -14,4 +14,3 @@ class ToolDefinition(BaseModel):
     input_schema: dict[str, Any] = Field(
         default_factory=dict,
     )
-

@@ -15,4 +15,3 @@ class Agent(BaseModel):
     tools: list[str] = Field(default_factory=list)
 
     metadata: dict[str, str] = Field(default_factory=dict)
-

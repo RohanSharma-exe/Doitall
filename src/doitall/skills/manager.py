@@ -28,7 +28,6 @@ class SkillManager:
         """Instantiate skill class, inject dependencies, validate status, and execute."""
         skill = self._create_skill(name)
 
-
         self._validate(skill)
 
         return await self._execute(

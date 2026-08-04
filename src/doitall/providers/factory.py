@@ -19,4 +19,3 @@ class ProviderFactory:
             return self.manager.get(default_provider)
 
         return self.manager.default()
-

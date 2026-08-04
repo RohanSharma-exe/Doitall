@@ -18,4 +18,3 @@ class Prompt(BaseModel):
     temperature: float = 0.7
     top_p: float = 1.0
     max_tokens: int | None = None
-

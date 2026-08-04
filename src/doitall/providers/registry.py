@@ -51,4 +51,3 @@ def register_providers(manager: ProviderManager) -> None:
             "No AI providers were registered. "
             "Set at least one provider API key in your .env file."
         )
-

@@ -16,4 +16,3 @@ def register_builtin_skills(
     registry.register(TimeSkill)
     registry.register(WebSearchSkill)
     registry.register(WebFetchSkill)
-

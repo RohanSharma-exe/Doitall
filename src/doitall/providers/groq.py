@@ -101,4 +101,3 @@ class GroqProvider(BaseProvider):
             return True
         except Exception:
             return False
-

@@ -20,4 +20,3 @@ class ConversationProvider:
     ) -> None:
         """Retrieve conversation messages and assign to context."""
         context.messages = self._conversation.context_messages()
-

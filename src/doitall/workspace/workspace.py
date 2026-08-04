@@ -33,7 +33,6 @@ class Workspace:
 
         return path
 
-
     def exists(
         self,
         relative_path: str | Path,

@@ -11,7 +11,6 @@ from doitall.models.tool_definition import ToolDefinition
 
 
 class RuntimeContext(BaseModel):
-
     """Context passed through the runtime execution pipeline.
 
     The RuntimeContext accumulates information from various context providers

@@ -206,14 +206,13 @@ def test_get_chat_service_reuses_cache_for_same_provider(client):
     assert service2 is service
     create.assert_called_once()
 
+
 def test_stream_command_does_not_create_chat_service(client):
     import doitall.api.routes.chat as chat_mod
 
     executor = MagicMock(spec=["is_command", "execute"])
     executor.is_command.return_value = True
-    executor.execute = AsyncMock(
-        return_value=CommandResult(content="Help output")
-    )
+    executor.execute = AsyncMock(return_value=CommandResult(content="Help output"))
 
     with (
         patch.object(

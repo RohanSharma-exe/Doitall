@@ -70,4 +70,3 @@ class SkillRegistry:
     def clear(self) -> None:
         """Clear all registered skills."""
         self._skills.clear()
-

@@ -22,4 +22,3 @@ class Session(BaseModel):
     conversation: Conversation = Field(default_factory=Conversation)
 
     metadata: dict[str, str] = Field(default_factory=dict)
-

@@ -23,7 +23,6 @@ class LiteLLMEmbeddingService(EmbeddingService):
         """Initialize embedding service with target model identifier."""
         self.model = model
 
-
     async def embed(
         self,
         text: str,

@@ -14,7 +14,6 @@ def _matches_configured_api_key(candidate: str | None) -> bool:
     return secrets.compare_digest(candidate, settings.API_KEY)
 
 
-
 async def require_api_key(
     authorization: str | None = Header(default=None),
     x_api_key: str | None = Header(default=None),

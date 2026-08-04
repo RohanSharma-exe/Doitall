@@ -23,4 +23,3 @@ class Attachment(BaseModel):
     path: str
     mime_type: str | None = None
     size: int | None = None
-

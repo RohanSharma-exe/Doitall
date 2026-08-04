@@ -51,4 +51,3 @@ class VectorMemoryStore(MemoryStore):
     async def count(self) -> int:
         """Return count of stored memories in repository."""
         return await self.repository.count()
-

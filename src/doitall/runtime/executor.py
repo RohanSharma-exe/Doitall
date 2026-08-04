@@ -100,15 +100,12 @@ class RuntimeExecutor:
             except Exception as exc:
                 message = str(exc).lower()
 
-                should_retry_without_tools = (
-                    bool(context.tools)
-                    and (
-                        "tool_use_failed" in message
-                        or "failed to call a function" in message
-                        or "tool calling" in message
-                        or "tool call" in message
-                        or "function call" in message
-                    )
+                should_retry_without_tools = bool(context.tools) and (
+                    "tool_use_failed" in message
+                    or "failed to call a function" in message
+                    or "tool calling" in message
+                    or "tool call" in message
+                    or "function call" in message
                 )
 
                 if should_retry_without_tools:
@@ -185,15 +182,12 @@ class RuntimeExecutor:
             except Exception as exc:
                 message = str(exc).lower()
 
-                should_retry_without_tools = (
-                    bool(context.tools)
-                    and (
-                        "tool_use_failed" in message
-                        or "failed to call a function" in message
-                        or "tool calling" in message
-                        or "tool call" in message
-                        or "function call" in message
-                    )
+                should_retry_without_tools = bool(context.tools) and (
+                    "tool_use_failed" in message
+                    or "failed to call a function" in message
+                    or "tool calling" in message
+                    or "tool call" in message
+                    or "function call" in message
                 )
 
                 if should_retry_without_tools:

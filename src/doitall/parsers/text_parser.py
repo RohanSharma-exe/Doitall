@@ -22,4 +22,3 @@ class TextParser(DocumentParser):
                 source=path,
             )
         ]
-

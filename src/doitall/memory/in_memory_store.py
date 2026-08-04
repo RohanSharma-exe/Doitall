@@ -26,4 +26,3 @@ class InMemoryStore(MemoryStore):
     async def count(self) -> int:
         """Return number of stored memory objects."""
         return len(self._memories)
-

@@ -44,7 +44,6 @@ class SlashCommandExecutor:
         if not parts:
             return None
 
-
         command_name = parts[0]
         arguments = parts[1:]
         try:
@@ -66,51 +65,35 @@ class SlashCommandExecutor:
 
         if command_name == "/clear":
             if self._conversation is None:
-                return CommandResult(
-                    "Conversation service is unavailable."
-                )
+                return CommandResult("Conversation service is unavailable.")
 
             self._conversation.clear()
 
-            return CommandResult(
-                "Conversation cleared."
-            )
+            return CommandResult("Conversation cleared.")
 
         if command_name == "/history":
             if self._conversation is None:
-                return CommandResult(
-                    "Conversation service is unavailable."
-                )
+                return CommandResult("Conversation service is unavailable.")
 
             messages = self._conversation.messages()
 
             if not messages:
-                return CommandResult(
-                    "No conversation history."
-                )
+                return CommandResult("No conversation history.")
 
             lines = []
 
             for message in messages:
-                lines.append(
-                    f"{message.role}: {message.content}"
-                )
+                lines.append(f"{message.role}: {message.content}")
 
-            return CommandResult(
-                "\n".join(lines)
-            )
+            return CommandResult("\n".join(lines))
 
         if command_name == "/new":
             if self._conversation is None:
-                return CommandResult(
-                    "Conversation service is unavailable."
-                )
+                return CommandResult("Conversation service is unavailable.")
 
             self._conversation.clear()
 
-            return CommandResult(
-                "Started a new conversation."
-            )
+            return CommandResult("Started a new conversation.")
 
         tool_map = {
             "/calculator": ("calculator", self._calculator_args),
@@ -126,16 +109,12 @@ class SlashCommandExecutor:
             skill_name, argument_builder = tool
 
             if not self._skill_registry.exists(skill_name):
-                return CommandResult(
-                    content=f"Skill '{skill_name}' is not registered."
-                )
+                return CommandResult(content=f"Skill '{skill_name}' is not registered.")
 
             kwargs = argument_builder(arguments)
 
             if self._skill_manager is None:
-                return CommandResult(
-                    content="Skill execution is not available."
-                )
+                return CommandResult(content="Skill execution is not available.")
 
             result = await self._skill_manager.execute(
                 skill_name,
@@ -195,14 +174,11 @@ class SlashCommandExecutor:
         arguments: list[str],
     ) -> dict[str, str]:
         if not arguments:
-            raise ValueError(
-                "Usage: /calculator <expression>"
-            )
+            raise ValueError("Usage: /calculator <expression>")
 
         return {
             "expression": " ".join(arguments),
         }
-
 
     def _time_args(
         self,
@@ -212,43 +188,34 @@ class SlashCommandExecutor:
             "timezone": arguments[0] if arguments else "UTC",
         }
 
-
     def _web_search_args(
         self,
         arguments: list[str],
     ) -> dict[str, str]:
         if not arguments:
-            raise ValueError(
-                "Usage: /web-search <query>"
-            )
+            raise ValueError("Usage: /web-search <query>")
 
         return {
             "query": " ".join(arguments),
         }
-
 
     def _web_fetch_args(
         self,
         arguments: list[str],
     ) -> dict[str, str]:
         if not arguments:
-            raise ValueError(
-                "Usage: /web-fetch <url>"
-            )
+            raise ValueError("Usage: /web-fetch <url>")
 
         return {
             "url": arguments[0],
         }
-
 
     def _filesystem_args(
         self,
         arguments: list[str],
     ) -> dict:
         if not arguments:
-            raise ValueError(
-                "Usage: /filesystem <action> [path] [content]"
-            )
+            raise ValueError("Usage: /filesystem <action> [path] [content]")
 
         action = arguments[0]
 
@@ -260,9 +227,7 @@ class SlashCommandExecutor:
 
         if action in {"read", "exists", "delete"}:
             if len(arguments) < 2:
-                raise ValueError(
-                    f"Usage: /filesystem {action} <path>"
-                )
+                raise ValueError(f"Usage: /filesystem {action} <path>")
 
             return {
                 "action": action,
@@ -271,9 +236,7 @@ class SlashCommandExecutor:
 
         if action == "write":
             if len(arguments) < 3:
-                raise ValueError(
-                    "Usage: /filesystem write <path> <content>"
-                )
+                raise ValueError("Usage: /filesystem write <path> <content>")
 
             return {
                 "action": "write",
@@ -281,6 +244,4 @@ class SlashCommandExecutor:
                 "content": " ".join(arguments[2:]),
             }
 
-        raise ValueError(
-            f"Unknown filesystem action: {action}"
-        )
+        raise ValueError(f"Unknown filesystem action: {action}")

@@ -5,10 +5,11 @@ embedding services, knowledge stores, and skills, registering all dependencies
 into the global service container.
 """
 
+import logging
+
+import litellm
 from loguru import logger
 from qdrant_client import AsyncQdrantClient
-import logging
-import litellm
 
 import doitall.database.models  # noqa: F401 — registers SQLModel table metadata
 from doitall.config.logging import configure_logging
@@ -32,7 +33,6 @@ from doitall.workspace.workspace import Workspace
 
 # Global flag ensuring bootstrap logic only executes once per process lifecycle
 _bootstrap_has_run = False
-
 
 
 def bootstrap() -> None:

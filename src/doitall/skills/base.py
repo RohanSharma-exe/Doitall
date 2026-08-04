@@ -31,4 +31,3 @@ class BaseSkill(ABC):
             description=cls.description,
             input_schema={},
         )
-

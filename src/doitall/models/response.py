@@ -13,4 +13,3 @@ class Response(BaseModel):
     provider: str = Field(default="")
     finish_reason: str | None = None
     usage: Usage = Field(default_factory=Usage)
-

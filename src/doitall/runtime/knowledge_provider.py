@@ -24,4 +24,3 @@ class KnowledgeProvider(ContextProvider):
             return
 
         context.knowledge.extend(await self._repository.search(context.query))
-

@@ -56,4 +56,3 @@ class DirectoryLoader(DocumentLoader):
             documents.extend(loader.load(str(file)))
 
         return documents
-

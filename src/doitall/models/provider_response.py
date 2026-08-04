@@ -19,4 +19,3 @@ class ProviderResponse(BaseModel):
     model: str | None = None
 
     usage_tokens: dict[str, int] = Field(default_factory=dict)
-

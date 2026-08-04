@@ -52,4 +52,3 @@ class ToolMessage(Message):
 
     tool_call_id: str
     name: str
-

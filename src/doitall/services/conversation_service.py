@@ -142,4 +142,3 @@ class ConversationService:
         if not self._conversation.messages:
             return None
         return self._conversation.messages[-1]
-

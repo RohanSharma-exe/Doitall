@@ -36,4 +36,3 @@ SUPPORTED_LLM_PROVIDERS = (
 
 # Default provider used when none is explicitly specified
 DEFAULT_PROVIDER = "gemini"
-

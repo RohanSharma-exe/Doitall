@@ -26,7 +26,6 @@ class CalculatorSkill(BaseSkill):
     def definition(cls) -> ToolDefinition:
         """Return tool definition schema for calculator skill."""
         return ToolDefinition(
-
             name=cls.name,
             description=cls.description,
             input_schema={

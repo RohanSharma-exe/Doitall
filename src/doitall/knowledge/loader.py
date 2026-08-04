@@ -14,4 +14,3 @@ class DocumentLoader(ABC):
         path: str,
     ) -> list[Document]:
         """Load one or more documents."""
-

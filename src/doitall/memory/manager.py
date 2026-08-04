@@ -77,4 +77,3 @@ class MemoryManager:
             return await self._store.count()
         except Exception as e:
             raise ProviderError(f"Failed to count memories: {e}") from e
-

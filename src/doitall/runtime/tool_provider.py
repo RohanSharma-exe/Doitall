@@ -23,4 +23,3 @@ class ToolProvider(ContextProvider):
         context.tools.extend(
             self._registry.definitions(),
         )
-

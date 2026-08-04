@@ -30,4 +30,3 @@ class KnowledgeRepository(ABC):
     @abstractmethod
     def count(self) -> int:
         """Number of indexed chunks."""
-

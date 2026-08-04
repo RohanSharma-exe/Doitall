@@ -20,4 +20,3 @@ class ProviderType(StrEnum):
     GROQ = "groq"
     OLLAMA = "ollama"
     OPENROUTER = "openrouter"
-

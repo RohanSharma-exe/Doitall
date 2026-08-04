@@ -17,7 +17,6 @@ app = typer.Typer(
 )
 
 
-
 @app.command()
 def version() -> None:
     """Show application version."""

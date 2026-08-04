@@ -10,4 +10,3 @@ def create_default_agent() -> Agent:
         description="Default AI assistant",
         system_prompt="You are Doitall, a helpful AI assistant.",
     )
-

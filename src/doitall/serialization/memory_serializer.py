@@ -36,4 +36,3 @@ class MemorySerializer:
             created_at=datetime.fromisoformat(payload["created_at"]),
             metadata=payload.get("metadata", {}),
         )
-

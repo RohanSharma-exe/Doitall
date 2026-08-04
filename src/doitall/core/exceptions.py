@@ -39,4 +39,3 @@ class ValidationError(DoitallError):
 
 class EmbeddingError(DoitallError):
     """Raised when embedding generation fails."""
-

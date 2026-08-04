@@ -8,7 +8,6 @@ from doitall.models.memory import Memory
 class MemoryFilter:
     """Filters memories based on length thresholds and duplicate detection cache."""
 
-
     def __init__(
         self,
         min_length: int = 10,

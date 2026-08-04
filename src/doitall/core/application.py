@@ -7,4 +7,3 @@ from doitall import Doitall
 
 # Alias main Doitall class as Application
 Application = Doitall
-

@@ -6,7 +6,6 @@ from doitall.models.memory import Memory
 class MemoryScorer:
     """Scores memories based on importance and relevance."""
 
-
     def __init__(
         self,
         base_score: float = 0.5,

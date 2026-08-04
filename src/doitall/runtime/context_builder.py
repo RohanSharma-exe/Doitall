@@ -40,4 +40,3 @@ class ContextBuilder:
     def build(self) -> RuntimeContext:
         """Return the built RuntimeContext instance."""
         return self._context
-

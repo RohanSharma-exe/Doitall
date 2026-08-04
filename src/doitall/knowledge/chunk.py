@@ -17,4 +17,3 @@ class Chunk(BaseModel):
     chunk_index: int
 
     metadata: dict[str, Any] = Field(default_factory=dict)
-

@@ -33,4 +33,3 @@ class ChunkSerializer:
             chunk_index=payload["chunk_index"],
             metadata=payload.get("metadata", {}),
         )
-

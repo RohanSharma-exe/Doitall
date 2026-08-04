@@ -18,4 +18,3 @@ class Tool(BaseModel):
     name: str
     description: str
     parameters: list[ToolParameter] = Field(default_factory=list)
-

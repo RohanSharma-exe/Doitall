@@ -15,4 +15,3 @@ class DocumentChunker(ABC):
         document: Document,
     ) -> list[Chunk]:
         """Split a document into chunks."""
-

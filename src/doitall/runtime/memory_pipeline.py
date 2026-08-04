@@ -41,4 +41,3 @@ class MemoryPipeline:
             memory = self._scorer.score(memory)
 
             await self._manager.add(memory)
-

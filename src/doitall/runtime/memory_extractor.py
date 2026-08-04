@@ -32,4 +32,3 @@ class MemoryExtractor:
         if len(compacted) <= limit:
             return compacted
         return f"{compacted[:limit].rstrip()}…"
-

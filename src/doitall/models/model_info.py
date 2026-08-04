@@ -20,4 +20,3 @@ class ModelInfo(BaseModel):
     supports_image_generation: bool = False
     supports_audio: bool = False
     supports_tool_calling: bool = False
-

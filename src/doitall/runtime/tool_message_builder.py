@@ -20,4 +20,3 @@ class ToolMessageBuilder:
             )
             for result in results
         ]
-

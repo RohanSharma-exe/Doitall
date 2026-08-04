@@ -23,7 +23,6 @@ from doitall.providers.exceptions import (
 class LiteLLMClient:
     """LiteLLM wrapper for unified LLM provider access."""
 
-
     async def stream(
         self,
         *,

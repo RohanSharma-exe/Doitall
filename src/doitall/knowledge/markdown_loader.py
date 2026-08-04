@@ -23,4 +23,3 @@ class MarkdownLoader(DocumentLoader):
             document.metadata["type"] = "markdown"
 
         return documents
-

@@ -17,4 +17,3 @@ class TxtLoader(DocumentLoader):
     ) -> list:
         """Parse plain text document at file path."""
         return self.parser.parse(path)
-

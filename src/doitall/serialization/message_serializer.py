@@ -27,4 +27,3 @@ class MessageSerializer:
     ) -> Message:
         """Validate and construct Message object from raw dictionary data."""
         return Message.model_validate(data)
-

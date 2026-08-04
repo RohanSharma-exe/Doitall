@@ -22,9 +22,7 @@ class FakeProvider(BaseProvider):
 
         self._models = models
         self._healthy = healthy
-        self._chat = AsyncMock(
-            return_value=ProviderResponse(content="")
-        )
+        self._chat = AsyncMock(return_value=ProviderResponse(content=""))
 
     async def chat(
         self,

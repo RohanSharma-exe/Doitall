@@ -38,4 +38,3 @@ class VectorRepository(ABC):
     @abstractmethod
     async def count(self) -> int:
         """Return total count of stored memory points."""
-

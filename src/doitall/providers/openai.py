@@ -101,4 +101,3 @@ class OpenAIProvider(BaseProvider):
             return True
         except Exception:
             return False
-

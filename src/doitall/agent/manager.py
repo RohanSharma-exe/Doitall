@@ -22,4 +22,3 @@ class AgentManager:
     def name(self) -> str:
         """Return agent name string."""
         return self.agent.name
-

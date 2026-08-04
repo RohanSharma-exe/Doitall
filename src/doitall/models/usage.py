@@ -13,4 +13,3 @@ class Usage(BaseModel):
     input_cost: float = 0.0
     output_cost: float = 0.0
     total_cost: float = 0.0
-

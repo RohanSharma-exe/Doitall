@@ -134,4 +134,3 @@ class QdrantStore(VectorStore):
             self.collection_name,
         )
         await self.ensure_collection()
-

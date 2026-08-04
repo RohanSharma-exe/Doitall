@@ -15,4 +15,3 @@ class Document(BaseModel):
     source: str | None = None
 
     metadata: dict[str, Any] = Field(default_factory=dict)
-

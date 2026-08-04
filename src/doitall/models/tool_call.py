@@ -25,4 +25,3 @@ class ToolResult(BaseModel):
     name: str
 
     result: Any
-

@@ -5,7 +5,6 @@ from doitall.runtime.context_provider import ContextProvider
 
 
 class ContextAssembler:
-
     """Assembles runtime context by delegating to multiple context providers.
 
     The ContextAssembler coordinates multiple context providers to populate

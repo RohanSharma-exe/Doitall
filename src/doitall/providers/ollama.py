@@ -100,4 +100,3 @@ class OllamaProvider(BaseProvider):
                 return resp.status_code == 200
         except Exception:
             return False
-

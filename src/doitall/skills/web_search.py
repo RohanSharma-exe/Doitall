@@ -87,7 +87,9 @@ class WebSearchSkill(BaseSkill):
         url = topic.get("FirstURL")
         text = topic.get("Text")
         if url and text:
-            results.append({"title": text.split(" - ", 1)[0], "url": url, "snippet": text})
+            results.append(
+                {"title": text.split(" - ", 1)[0], "url": url, "snippet": text}
+            )
 
 
 class WebFetchSkill(BaseSkill):

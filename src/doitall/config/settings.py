@@ -146,4 +146,3 @@ def get_settings() -> Settings:
 
 # Global singleton instance of application settings
 settings = get_settings()
-

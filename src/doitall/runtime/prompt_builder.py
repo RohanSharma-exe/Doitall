@@ -11,7 +11,6 @@ from doitall.runtime.context import RuntimeContext
 
 
 class PromptBuilder:
-
     """Builds prompts for LLM providers from runtime context.
 
     The PromptBuilder constructs the final message sequence by combining

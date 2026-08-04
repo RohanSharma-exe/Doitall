@@ -24,4 +24,3 @@ class Conversation(BaseModel):
             return None
 
         return self.messages[-1]
-

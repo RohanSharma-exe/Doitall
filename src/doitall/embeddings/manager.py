@@ -37,4 +37,3 @@ class EmbeddingManager:
         return cls(
             LiteLLMEmbeddingService(model=model),
         )
-

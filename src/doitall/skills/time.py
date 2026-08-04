@@ -17,7 +17,6 @@ class TimeSkill(BaseSkill):
     def definition(cls) -> ToolDefinition:
         """Return tool definition schema for time skill."""
         return ToolDefinition(
-
             name=cls.name,
             description=cls.description,
             input_schema={

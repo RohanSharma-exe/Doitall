@@ -30,4 +30,3 @@ class SimpleChunker(DocumentChunker):
             )
             for index, i in enumerate(range(0, len(text), self.chunk_size))
         ]
-

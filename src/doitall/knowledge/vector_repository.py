@@ -84,4 +84,3 @@ class VectorKnowledgeRepository(KnowledgeRepository):
     async def count(self) -> int:
         """Return total count of indexed document chunks in vector store."""
         return await self.vector_store.count()
-

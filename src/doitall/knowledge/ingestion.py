@@ -72,4 +72,3 @@ class KnowledgeIngestionService:
             raise ProviderError(error_msg)
 
         return results
-

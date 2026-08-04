@@ -31,4 +31,3 @@ class LoaderRegistry:
     ) -> set[str]:
         """Return set of registered file extension strings."""
         return set(self._loaders.keys())
-

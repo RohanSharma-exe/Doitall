@@ -41,4 +41,3 @@ def configure_logging() -> None:
         backtrace=True,
         diagnose=True,
     )
-

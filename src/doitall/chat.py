@@ -1,9 +1,10 @@
 """Interactive CLI terminal chat module."""
 
+import sys
+
 from rich.console import Console
 
 from doitall import Doitall
-import sys
 
 # Rich console instance for formatted terminal outputs
 console = Console()
@@ -34,4 +35,3 @@ async def run_chat() -> None:
             sys.stdout.flush()
 
         print("\n")
-

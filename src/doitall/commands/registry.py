@@ -102,6 +102,7 @@ def _arguments(name: str) -> list[str]:
 
     return arguments.get(name, [])
 
+
 def _builtin_commands() -> list[Command]:
     data: list[tuple[CommandCategory, list[str]]] = [
         (

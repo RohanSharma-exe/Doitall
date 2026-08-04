@@ -37,7 +37,8 @@ def test_capabilities_defaults():
 async def test_stream_raises_not_implemented():
     provider = ConcreteProvider()
     with pytest.raises(NotImplementedError, match="does not support streaming"):
-        await provider.stream([])
+        async for _ in provider.stream([]):
+            pass
 
 
 @pytest.mark.asyncio

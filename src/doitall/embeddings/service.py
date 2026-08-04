@@ -19,4 +19,3 @@ class EmbeddingService(ABC):
         texts: list[str],
     ) -> list[list[float]]:
         """Generate embeddings for multiple texts."""
-

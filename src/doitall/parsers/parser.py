@@ -14,4 +14,3 @@ class DocumentParser(ABC):
         path: str,
     ) -> list[Document]:
         """Parse a file into one or more documents."""
-

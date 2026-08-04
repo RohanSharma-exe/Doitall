@@ -86,4 +86,3 @@ class Doitall:
     def is_running(self) -> bool:
         """Check if the application is running."""
         return self._is_running
-
