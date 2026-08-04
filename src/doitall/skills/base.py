@@ -1,3 +1,5 @@
+"""Abstract BaseSkill interface module."""
+
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -29,3 +31,4 @@ class BaseSkill(ABC):
             description=cls.description,
             input_schema={},
         )
+

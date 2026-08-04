@@ -1,3 +1,5 @@
+"""Safe AST arithmetic evaluation skill module."""
+
 import ast
 import operator
 
@@ -22,7 +24,9 @@ class CalculatorSkill(BaseSkill):
 
     @classmethod
     def definition(cls) -> ToolDefinition:
+        """Return tool definition schema for calculator skill."""
         return ToolDefinition(
+
             name=cls.name,
             description=cls.description,
             input_schema={

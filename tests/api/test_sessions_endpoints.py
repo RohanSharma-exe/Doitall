@@ -20,6 +20,7 @@ from sqlmodel import Session as DBSession
 from sqlmodel import SQLModel, create_engine
 
 import doitall.database.models  # noqa: F401 — registers table metadata
+from doitall.commands.executor import CommandResult
 from doitall.database.session_repository import SessionRepository
 from doitall.services.registry import container
 
@@ -204,3 +205,34 @@ def test_get_chat_service_reuses_cache_for_same_provider(client):
     assert service1 is service
     assert service2 is service
     create.assert_called_once()
+
+def test_stream_command_does_not_create_chat_service(client):
+    import doitall.api.routes.chat as chat_mod
+
+    executor = MagicMock(spec=["is_command", "execute"])
+    executor.is_command.return_value = True
+    executor.execute = AsyncMock(
+        return_value=CommandResult(content="Help output")
+    )
+
+    with (
+        patch.object(
+            chat_mod,
+            "_get_command_executor",
+            return_value=executor,
+        ),
+        patch.object(
+            chat_mod,
+            "_get_chat_service",
+        ) as get_chat_service,
+    ):
+        response = client.post(
+            "/v1/chat/stream",
+            json={"message": "/help"},
+        )
+
+    assert response.status_code == 200
+    assert "Help output" in response.text
+    assert "[DONE]" in response.text
+
+    get_chat_service.assert_not_called()

@@ -1,3 +1,8 @@
+"""Automatic provider registration module.
+
+Inspects settings for configured API keys and registers available LLM providers.
+"""
+
 from loguru import logger
 
 from doitall.config.settings import settings
@@ -26,6 +31,7 @@ def register_providers(manager: ProviderManager) -> None:
 
     registered_any = False
 
+    # Iterate candidate providers and register if API key is provided
     for name, key, provider_cls in _candidates:
         if key:
             manager.register(provider_cls())
@@ -45,3 +51,4 @@ def register_providers(manager: ProviderManager) -> None:
             "No AI providers were registered. "
             "Set at least one provider API key in your .env file."
         )
+

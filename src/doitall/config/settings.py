@@ -1,9 +1,16 @@
+"""Application configuration settings module.
+
+Loads environment variables and `.env` file configurations using Pydantic Settings.
+Provides cached access to global `settings` instance.
+"""
+
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Base root directory calculation
 BASE_DIR = Path(__file__).resolve().parents[3]
 
 
@@ -133,8 +140,10 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached application settings to avoid repeated loading."""
+    """Return cached application settings to avoid repeated loading from disk/environment."""
     return Settings()
 
 
+# Global singleton instance of application settings
 settings = get_settings()
+

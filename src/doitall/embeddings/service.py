@@ -1,7 +1,11 @@
+"""Abstract embedding service interface module."""
+
 from abc import ABC, abstractmethod
 
 
 class EmbeddingService(ABC):
+    """Abstract base class defining the contract for embedding generation services."""
+
     @abstractmethod
     async def embed(
         self,
@@ -15,3 +19,4 @@ class EmbeddingService(ABC):
         texts: list[str],
     ) -> list[list[float]]:
         """Generate embeddings for multiple texts."""
+

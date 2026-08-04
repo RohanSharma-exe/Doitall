@@ -1,10 +1,13 @@
+"""Memory filtering and deduplication module."""
+
 from collections import deque
 
 from doitall.models.memory import Memory
 
 
 class MemoryFilter:
-    """Filters memories based on various criteria."""
+    """Filters memories based on length thresholds and duplicate detection cache."""
+
 
     def __init__(
         self,

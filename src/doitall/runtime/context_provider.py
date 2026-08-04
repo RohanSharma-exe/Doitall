@@ -1,9 +1,12 @@
+"""ContextProvider protocol interface module."""
+
 from typing import Protocol
 
 from doitall.runtime.context import RuntimeContext
 
 
 class ContextProvider(Protocol):
+
     """Protocol for context providers that enrich a RuntimeContext with additional information.
 
     Context providers are used to add relevant information to the runtime context,

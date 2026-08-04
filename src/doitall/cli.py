@@ -1,3 +1,5 @@
+"""Typer CLI commands module for Doitall application management."""
+
 import asyncio
 
 import typer
@@ -13,6 +15,7 @@ app = typer.Typer(
     help="Doitall AI Platform",
     no_args_is_help=True,
 )
+
 
 
 @app.command()

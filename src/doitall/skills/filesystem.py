@@ -1,3 +1,5 @@
+"""Safe workspace filesystem operations skill module."""
+
 import asyncio
 import functools
 from fnmatch import fnmatch
@@ -17,7 +19,9 @@ class FilesystemSkill(BaseSkill):
 
     @classmethod
     def definition(cls) -> ToolDefinition:
+        """Return tool definition schema for filesystem operations skill."""
         return ToolDefinition(
+
             name=cls.name,
             description=cls.description,
             input_schema={

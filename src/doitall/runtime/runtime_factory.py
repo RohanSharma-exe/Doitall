@@ -1,3 +1,5 @@
+"""Runtime factory module for constructing ChatService dependency stacks."""
+
 from doitall.agent.agent import Agent
 from doitall.agent.executor import AgentExecutor
 from doitall.agent.manager import AgentManager
@@ -26,13 +28,15 @@ from doitall.skills.manager import SkillManager
 
 
 class RuntimeFactory:
-    """Creates an isolated runtime for one assistant."""
+    """Creates an isolated runtime ChatService instance for an assistant agent."""
 
     def create(
         self,
         agent: Agent,
         conversation_service: ConversationService | None = None,
     ) -> ChatService:
+        """Construct and wire all services required for agent execution."""
+
         provider_manager: ProviderManager = container.resolve("provider_manager")
         skill_manager: SkillManager = container.resolve("skill_manager")
         skill_registry = container.resolve("skill_registry")

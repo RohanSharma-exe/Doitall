@@ -210,14 +210,36 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
     async def event_source():
         try:
             command_executor = _get_command_executor()
+            if command_executor and command_executor.is_command(request.message):
+                command_result = await command_executor.execute(request.message)
+
+                if command_result is not None:
+                    yield sse(
+                        StreamEvent(
+                            event="session",
+                            data={"session_id": session_id},
+                        )
+                    )
+
+                    yield sse(
+                        StreamEvent(
+                            event="token",
+                            data={"text": command_result.content},
+                        )
+                    )
+
+                    yield sse(
+                        StreamEvent(
+                            event="done",
+                            data={"message": "[DONE]"},
+                        )
+                    )
+
+                    return
             service = _get_chat_service(
                 session_id,
                 provider=request.provider,
             )
-            if command_executor and command_executor.is_command(request.message):
-                command_result = await command_executor.execute(request.message)
-                if command_result is not None:
-                    yield sse(StreamEvent(event="session", data={"session_id": session_id}))
             async for chunk in service.stream_chat(
                 request.message, provider=request.provider, model=request.model
             ):

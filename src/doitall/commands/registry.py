@@ -30,6 +30,7 @@ class CommandRegistry:
         self._aliases: dict[str, str] = {}
 
     def register(self, command: Command) -> None:
+        """Register a command and its aliases into the registry."""
         key = self._normalize(command.name)
         if key in self._commands:
             raise ValueError(f"Command already registered: {command.name}")
@@ -41,29 +42,65 @@ class CommandRegistry:
             self._aliases[alias_key] = key
 
     def register_many(self, commands: Iterable[Command]) -> None:
+        """Register multiple commands into the registry."""
         for command in commands:
             self.register(command)
 
     def get(self, name_or_alias: str) -> Command:
+        """Retrieve command instance by command name or registered alias."""
         key = self._normalize(name_or_alias)
         key = self._aliases.get(key, key)
         return self._commands[key]
 
     def list(self, *, include_hidden: bool = False) -> list[Command]:
+        """Return list of registered commands sorted by category and name."""
         commands = list(self._commands.values())
         if not include_hidden:
             commands = [command for command in commands if not command.hidden]
         return sorted(commands, key=lambda command: (command.category, command.name))
 
     def clear(self) -> None:
+        """Clear all registered commands and aliases."""
         self._commands.clear()
         self._aliases.clear()
 
     @staticmethod
     def _normalize(value: str) -> str:
+        """Normalize command name to lowercase string starting with '/'."""
         value = value.strip().lower()
         return value if value.startswith("/") else f"/{value}"
 
+
+def _aliases(name: str) -> list[str]:
+    aliases = {
+        "providers": ["/provider"],
+        "skills": ["/skill", "/list-skills"],
+        "tools": ["/tool", "/list-tools"],
+        "calculator": ["/calc"],
+        "filesystem": ["/fs"],
+        "web-search": ["/search-web"],
+        "web-fetch": ["/fetch"],
+        "time": ["/clock"],
+        "workspace": ["/ws"],
+        "history": ["/hist"],
+        "settings": ["/prefs"],
+    }
+
+    return aliases.get(name, [])
+
+
+def _arguments(name: str) -> list[str]:
+    arguments = {
+        "calculator": ["expression"],
+        "time": ["timezone"],
+        "web-search": ["query"],
+        "web-fetch": ["url"],
+        "filesystem": ["action", "path", "content"],
+        "model": ["model"],
+        "providers": ["provider"],
+    }
+
+    return arguments.get(name, [])
 
 def _builtin_commands() -> list[Command]:
     data: list[tuple[CommandCategory, list[str]]] = [
@@ -132,6 +169,9 @@ def _builtin_commands() -> list[Command]:
                     name=f"/{name}",
                     category=category,
                     description=descriptions.get(name, f"Open {name} controls."),
+                    aliases=_aliases(name),
+                    arguments=_arguments(name),
+                    permissions=[],
                     icon=(
                         "wrench"
                         if category == "tools"

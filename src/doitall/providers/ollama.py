@@ -1,3 +1,5 @@
+"""Ollama local provider integration module."""
+
 from typing import Any
 
 import httpx
@@ -9,6 +11,8 @@ from doitall.providers.client import LiteLLMClient
 
 
 class OllamaProvider(BaseProvider):
+    """Provider implementation for local Ollama instances via LiteLLM."""
+
     def __init__(self) -> None:
         super().__init__("ollama")
         self.client = LiteLLMClient()
@@ -18,6 +22,7 @@ class OllamaProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ) -> ProviderResponse:
+        """Execute Ollama chat completion with optional tool calls."""
         tools = kwargs.pop("tools", [])
 
         if tools:
@@ -52,6 +57,7 @@ class OllamaProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ):
+        """Stream response chunks from local Ollama model."""
         tools = kwargs.pop("tools", [])
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
@@ -63,6 +69,7 @@ class OllamaProvider(BaseProvider):
             yield chunk
 
     def _parse_usage(self, response: Any) -> dict[str, int]:
+        """Extract prompt, completion, and total token usage metrics."""
         usage = getattr(response, "usage", None)
         if usage is None:
             return {}
@@ -82,6 +89,7 @@ class OllamaProvider(BaseProvider):
         text: str,
         **kwargs: Any,
     ) -> list[float]:
+        """Generate text embeddings via local Ollama model."""
         raise NotImplementedError
 
     async def health_check(self) -> bool:
@@ -92,3 +100,4 @@ class OllamaProvider(BaseProvider):
                 return resp.status_code == 200
         except Exception:
             return False
+

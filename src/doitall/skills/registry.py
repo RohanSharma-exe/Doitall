@@ -7,27 +7,32 @@ class SkillRegistry:
     """Registry for executable skills."""
 
     def __init__(self) -> None:
+        """Initialize empty skill registry dictionary."""
         self._skills: dict[str, type[BaseSkill]] = {}
 
     def names(self) -> list[str]:
+        """Return list of all registered skill names."""
         return list(self._skills.keys())
 
     def register(
         self,
         skill: type[BaseSkill],
     ) -> None:
+        """Register a BaseSkill subclass in registry under skill.name."""
         self._skills[skill.name] = skill
 
     def unregister(
         self,
         name: str,
     ) -> None:
+        """Unregister skill by name if present."""
         self._skills.pop(name, None)
 
     def get(
         self,
         name: str,
     ) -> type[BaseSkill]:
+        """Return registered skill class for given skill name."""
         if name not in self._skills:
             raise SkillError(
                 f"Unknown skill: '{name}'. Available skills: {sorted(self._skills)}"
@@ -38,11 +43,13 @@ class SkillRegistry:
         self,
         name: str,
     ) -> bool:
+        """Check if skill is registered under given name."""
         return name in self._skills
 
     def all(
         self,
     ) -> list[type[BaseSkill]]:
+        """Return list of all registered skill classes."""
         return list(self._skills.values())
 
     def definitions(
@@ -61,4 +68,6 @@ class SkillRegistry:
         return self.get(name).definition()
 
     def clear(self) -> None:
+        """Clear all registered skills."""
         self._skills.clear()
+

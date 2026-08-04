@@ -1,3 +1,5 @@
+"""LiteLLM embedding service implementation module."""
+
 import asyncio
 
 from litellm import aembedding, embedding
@@ -12,11 +14,15 @@ from doitall.embeddings.service import EmbeddingService
 
 
 class LiteLLMEmbeddingService(EmbeddingService):
+    """Generates vector embeddings using LiteLLM with async and sync fallback paths."""
+
     def __init__(
         self,
         model: str,
     ) -> None:
+        """Initialize embedding service with target model identifier."""
         self.model = model
+
 
     async def embed(
         self,

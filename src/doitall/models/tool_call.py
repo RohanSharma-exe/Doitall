@@ -1,3 +1,5 @@
+"""Tool execution invocation and result models."""
+
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -23,3 +25,4 @@ class ToolResult(BaseModel):
     name: str
 
     result: Any
+

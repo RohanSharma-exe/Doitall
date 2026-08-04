@@ -1,3 +1,5 @@
+"""Time and timezone querying skill module."""
+
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -13,7 +15,9 @@ class TimeSkill(BaseSkill):
 
     @classmethod
     def definition(cls) -> ToolDefinition:
+        """Return tool definition schema for time skill."""
         return ToolDefinition(
+
             name=cls.name,
             description=cls.description,
             input_schema={

@@ -1,20 +1,37 @@
-from rich import print
+"""Interactive CLI terminal chat module."""
+
+from rich.console import Console
 
 from doitall import Doitall
+import sys
+
+# Rich console instance for formatted terminal outputs
+console = Console()
 
 
 async def run_chat() -> None:
+    """Run an interactive streaming chat session loop in the terminal."""
     assistant = Doitall()
 
-    print("[bold green]Doitall Chat[/bold green]")
-    print("Type 'exit' to quit.\n")
+    console.print("[bold green]Doitall Chat[/bold green]")
+    console.print("Type 'exit' to quit.\n")
 
     while True:
-        prompt = input("You: ").strip()
+        prompt = console.input("[bold cyan]You[/bold cyan]: ").strip()
 
         if prompt.lower() in {"exit", "quit"}:
             break
 
-        response = await assistant.chat(prompt)
+        console.print()
 
-        print(f"\nAssistant: {response}\n")
+        console.print(
+            "[bold green]Assistant[/bold green]: ",
+            end="",
+        )
+
+        async for chunk in assistant.stream_chat(prompt):
+            sys.stdout.write(chunk)
+            sys.stdout.flush()
+
+        print("\n")
+

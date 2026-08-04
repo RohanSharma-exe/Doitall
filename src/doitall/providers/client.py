@@ -1,3 +1,5 @@
+"""Unified LiteLLM async client wrapper module."""
+
 from typing import Any
 
 from litellm import (
@@ -20,6 +22,7 @@ from doitall.providers.exceptions import (
 
 class LiteLLMClient:
     """LiteLLM wrapper for unified LLM provider access."""
+
 
     async def stream(
         self,

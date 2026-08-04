@@ -5,6 +5,7 @@ from shlex import split
 
 from doitall.commands import CommandRegistry
 from doitall.providers.manager import ProviderManager
+from doitall.services.conversation_service import ConversationService
 from doitall.skills.manager import SkillManager
 from doitall.skills.registry import SkillRegistry
 
@@ -25,19 +26,24 @@ class SlashCommandExecutor:
         providers: ProviderManager,
         skills: SkillRegistry,
         skill_manager: SkillManager | None = None,
+        conversation: ConversationService | None = None,
     ):
         self._registry = registry
         self._provider_manager = providers
         self._skill_registry = skills
         self._skill_manager = skill_manager
+        self._conversation = conversation
 
     def is_command(self, content: str) -> bool:
+        """Return True if content string starts with slash '/' prefix."""
         return content.strip().startswith("/")
 
     async def execute(self, content: str) -> CommandResult | None:
+        """Parse slash command from input string and execute corresponding handler or tool."""
         parts = split(content.strip())
         if not parts:
             return None
+
 
         command_name = parts[0]
         arguments = parts[1:]
@@ -57,6 +63,54 @@ class SlashCommandExecutor:
             return CommandResult(await self._providers())
         if command_name in {"/tools", "/toolbox", "/skills"}:
             return CommandResult(self._tools())
+
+        if command_name == "/clear":
+            if self._conversation is None:
+                return CommandResult(
+                    "Conversation service is unavailable."
+                )
+
+            self._conversation.clear()
+
+            return CommandResult(
+                "Conversation cleared."
+            )
+
+        if command_name == "/history":
+            if self._conversation is None:
+                return CommandResult(
+                    "Conversation service is unavailable."
+                )
+
+            messages = self._conversation.messages()
+
+            if not messages:
+                return CommandResult(
+                    "No conversation history."
+                )
+
+            lines = []
+
+            for message in messages:
+                lines.append(
+                    f"{message.role}: {message.content}"
+                )
+
+            return CommandResult(
+                "\n".join(lines)
+            )
+
+        if command_name == "/new":
+            if self._conversation is None:
+                return CommandResult(
+                    "Conversation service is unavailable."
+                )
+
+            self._conversation.clear()
+
+            return CommandResult(
+                "Started a new conversation."
+            )
 
         tool_map = {
             "/calculator": ("calculator", self._calculator_args),

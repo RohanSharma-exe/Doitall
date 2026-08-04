@@ -1,19 +1,25 @@
+"""High-level MemoryManager facade module."""
+
 from doitall.core.exceptions import ProviderError, ValidationError
 from doitall.memory.store import MemoryStore
 from doitall.models.memory import Memory
 
 
 class MemoryManager:
+    """Facade orchestrating memory validation, retrieval, semantic search, and storage."""
+
     def __init__(
         self,
         store: MemoryStore,
     ) -> None:
+        """Initialize MemoryManager with backing MemoryStore instance."""
         self._store = store
 
     async def add(
         self,
         memory: Memory,
     ) -> None:
+        """Validate and persist a new Memory instance."""
         if not memory or not memory.content or not memory.content.strip():
             raise ValidationError("Memory content cannot be empty")
 
@@ -22,6 +28,7 @@ class MemoryManager:
     async def all(
         self,
     ) -> list[Memory]:
+        """Return all memories from backing store."""
         try:
             return await self._store.get_all()
         except Exception as e:
@@ -56,6 +63,7 @@ class MemoryManager:
     async def clear(
         self,
     ) -> None:
+        """Clear all stored memories in backing store."""
         try:
             await self._store.clear()
         except Exception as e:
@@ -64,7 +72,9 @@ class MemoryManager:
     async def count(
         self,
     ) -> int:
+        """Return total count of stored memories."""
         try:
             return await self._store.count()
         except Exception as e:
             raise ProviderError(f"Failed to count memories: {e}") from e
+

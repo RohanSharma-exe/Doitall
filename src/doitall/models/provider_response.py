@@ -1,3 +1,5 @@
+"""Normalized LLM provider response data model."""
+
 from pydantic import BaseModel, Field
 
 from doitall.models.tool_call import ToolCall
@@ -17,3 +19,4 @@ class ProviderResponse(BaseModel):
     model: str | None = None
 
     usage_tokens: dict[str, int] = Field(default_factory=dict)
+

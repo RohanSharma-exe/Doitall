@@ -89,18 +89,64 @@ class RuntimeExecutor:
         for candidate in self._provider_manager.fallback_candidates(context.provider):
             try:
                 async for chunk in candidate.provider.stream(
-                    payload, tools=context.tools, model=context.model
+                    payload,
+                    tools=context.tools,
+                    model=context.model,
                 ):
                     yield chunk
+
                 return
+
             except Exception as exc:
+                message = str(exc).lower()
+
+                should_retry_without_tools = (
+                    bool(context.tools)
+                    and (
+                        "tool_use_failed" in message
+                        or "failed to call a function" in message
+                        or "tool calling" in message
+                        or "tool call" in message
+                        or "function call" in message
+                    )
+                )
+
+                if should_retry_without_tools:
+                    logger.warning(
+                        "Provider '{}' rejected tool calling while streaming. Retrying without tools.",
+                        candidate.provider.name,
+                    )
+
+                    try:
+                        async for chunk in candidate.provider.stream(
+                            payload,
+                            tools=[],
+                            model=context.model,
+                        ):
+                            yield chunk
+
+                        return
+
+                    except Exception as retry_exc:
+                        errors.append(retry_exc)
+
+                        logger.warning(
+                            "Retry without tools also failed for '{}': {}",
+                            candidate.provider.name,
+                            retry_exc,
+                        )
+
+                        continue
+
                 errors.append(exc)
+
                 logger.warning(
-                    "Provider stream failed provider={} model={}; trying fallback if available: {}",
+                    "Provider '{}' failed: {}",
                     candidate.provider.name,
-                    context.model or "default",
                     exc,
                 )
+
+                continue
 
         if errors:
             raise errors[-1]
@@ -126,19 +172,71 @@ class RuntimeExecutor:
         for candidate in self._provider_manager.fallback_candidates(context.provider):
             try:
                 response = await candidate.provider.chat(
-                    payload, tools=context.tools, model=context.model
+                    payload,
+                    tools=context.tools,
+                    model=context.model,
                 )
+
                 if isinstance(response, ProviderResponse) and response.model is None:
                     response.model = context.model
+
                 return response
+
             except Exception as exc:
+                message = str(exc).lower()
+
+                should_retry_without_tools = (
+                    bool(context.tools)
+                    and (
+                        "tool_use_failed" in message
+                        or "failed to call a function" in message
+                        or "tool calling" in message
+                        or "tool call" in message
+                        or "function call" in message
+                    )
+                )
+
+                if should_retry_without_tools:
+                    logger.warning(
+                        "Provider '{}' rejected tool calling. Retrying without tools.",
+                        candidate.provider.name,
+                    )
+
+                    try:
+                        response = await candidate.provider.chat(
+                            payload,
+                            tools=[],
+                            model=context.model,
+                        )
+
+                        if (
+                            isinstance(response, ProviderResponse)
+                            and response.model is None
+                        ):
+                            response.model = context.model
+
+                        return response
+
+                    except Exception as retry_exc:
+                        errors.append(retry_exc)
+
+                        logger.warning(
+                            "Retry without tools also failed for '{}': {}",
+                            candidate.provider.name,
+                            retry_exc,
+                        )
+
+                        continue
+
                 errors.append(exc)
+
                 logger.warning(
-                    "Provider chat failed provider={} model={}; trying fallback if available: {}",
+                    "Provider '{}' failed: {}",
                     candidate.provider.name,
-                    context.model or "default",
                     exc,
                 )
+
+                continue
 
         if errors:
             raise errors[-1]

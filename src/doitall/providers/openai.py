@@ -1,3 +1,5 @@
+"""OpenAI provider integration module."""
+
 from typing import Any
 
 from doitall.config.settings import settings
@@ -7,6 +9,8 @@ from doitall.providers.client import LiteLLMClient
 
 
 class OpenAIProvider(BaseProvider):
+    """Provider implementation for OpenAI GPT models via LiteLLM."""
+
     def __init__(self) -> None:
         super().__init__("openai")
         self.client = LiteLLMClient()
@@ -16,6 +20,7 @@ class OpenAIProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ) -> ProviderResponse:
+        """Execute OpenAI chat completion with optional tool calls."""
         tools = kwargs.pop("tools", [])
 
         if tools:
@@ -50,6 +55,7 @@ class OpenAIProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ):
+        """Stream response chunks from OpenAI models."""
         tools = kwargs.pop("tools", [])
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
@@ -61,6 +67,7 @@ class OpenAIProvider(BaseProvider):
             yield chunk
 
     def _parse_usage(self, response: Any) -> dict[str, int]:
+        """Extract prompt, completion, and total token usage metrics."""
         usage = getattr(response, "usage", None)
         if usage is None:
             return {}
@@ -80,6 +87,7 @@ class OpenAIProvider(BaseProvider):
         text: str,
         **kwargs: Any,
     ) -> list[float]:
+        """Generate text embeddings via OpenAI embedding model."""
         raise NotImplementedError
 
     async def health_check(self) -> bool:
@@ -93,3 +101,4 @@ class OpenAIProvider(BaseProvider):
             return True
         except Exception:
             return False
+

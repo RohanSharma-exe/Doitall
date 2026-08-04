@@ -55,6 +55,7 @@ class QdrantStore(VectorStore):
         vector: list[float],
         payload: dict[str, Any],
     ) -> None:
+        """Upsert vector point with associated metadata payload."""
         await self.client.upsert(
             collection_name=self.collection_name,
             wait=True,
@@ -72,6 +73,7 @@ class QdrantStore(VectorStore):
         vector: list[float],
         limit: int = 5,
     ) -> list[dict[str, Any]]:
+        """Search vector space for top-k closest points to target query vector."""
         results = (
             await self.client.query_points(
                 collection_name=self.collection_name,
@@ -113,19 +115,23 @@ class QdrantStore(VectorStore):
         self,
         point_id: str,
     ) -> None:
+        """Delete point by point_id from Qdrant collection."""
         await self.client.delete(
             collection_name=self.collection_name,
             points_selector=[point_id],
         )
 
     async def count(self) -> int:
+        """Return point_count of the collection."""
         info = await self.client.get_collection(
             self.collection_name,
         )
         return info.points_count or 0
 
     async def clear(self) -> None:
+        """Drop collection and recreate empty collection."""
         await self.client.delete_collection(
             self.collection_name,
         )
         await self.ensure_collection()
+

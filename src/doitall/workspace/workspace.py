@@ -1,3 +1,5 @@
+"""Sandboxed project workspace manager module."""
+
 import shutil
 from pathlib import Path
 
@@ -9,16 +11,19 @@ class Workspace:
         self,
         root: str | Path,
     ) -> None:
+        """Initialize workspace with root directory path."""
         self._root = Path(root).resolve()
 
     @property
     def root(self) -> Path:
+        """Return resolved absolute root Path of workspace."""
         return self._root
 
     def resolve(
         self,
         relative_path: str | Path,
     ) -> Path:
+        """Resolve relative path into absolute Path, raising ValueError if path escapes workspace root."""
         path = (self._root / relative_path).resolve()
 
         try:
@@ -27,6 +32,7 @@ class Workspace:
             raise ValueError("Path escapes workspace.") from exc
 
         return path
+
 
     def exists(
         self,

@@ -1,3 +1,5 @@
+"""Agent execution coordinator managing iterative tool-calling loops."""
+
 from loguru import logger
 
 from doitall.models.message import AssistantMessage
@@ -9,6 +11,8 @@ from doitall.services.tool_calling_engine import ToolCallingEngine
 
 
 class AgentExecutor:
+    """Coordinates runtime execution and iterative tool calling until completion."""
+
     MAX_TOOL_ITERATIONS = 10
 
     def __init__(
@@ -17,6 +21,7 @@ class AgentExecutor:
         tool_engine: ToolCallingEngine,
         tool_message_builder: ToolMessageBuilder,
     ) -> None:
+        """Initialize AgentExecutor with runtime, tool engine, and message builder dependencies."""
         self._runtime = runtime
         self._tool_engine = tool_engine
         self._tool_message_builder = tool_message_builder
@@ -25,6 +30,7 @@ class AgentExecutor:
         self,
         context: RuntimeContext,
     ):
+        """Stream chat response chunks from the runtime executor."""
         async for chunk in self._runtime.stream(context):
             yield chunk
 
@@ -32,6 +38,7 @@ class AgentExecutor:
         self,
         context: RuntimeContext,
     ) -> ProviderResponse:
+        """Execute request against provider and recursively resolve requested tool calls up to MAX_TOOL_ITERATIONS."""
         response = await self._runtime.execute(context)
 
         for _iteration in range(self.MAX_TOOL_ITERATIONS):
@@ -58,3 +65,4 @@ class AgentExecutor:
             "Returning last partial response."
         )
         return response
+

@@ -1,9 +1,13 @@
+"""Knowledge document ingestion service module."""
+
 from doitall.core.exceptions import ProviderError, ValidationError
 from doitall.knowledge.document import Document
 from doitall.knowledge.repository import KnowledgeRepository
 
 
 class IngestionResult:
+    """Ingestion result detailing document ID, chunk count, and status."""
+
     def __init__(
         self,
         *,
@@ -17,16 +21,20 @@ class IngestionResult:
 
 
 class KnowledgeIngestionService:
+    """Service handling validation, chunking, and vector storage of ingested documents."""
+
     def __init__(
         self,
         repository: KnowledgeRepository,
     ) -> None:
+        """Initialize ingestion service with target KnowledgeRepository dependency."""
         self.repository = repository
 
     async def ingest(
         self,
         document: Document,
     ) -> IngestionResult:
+        """Validate, chunk, embed, and index a single Document object."""
         if not document or not document.content or not document.content.strip():
             raise ValidationError("Document content cannot be empty")
 
@@ -41,6 +49,7 @@ class KnowledgeIngestionService:
         self,
         documents: list[Document],
     ) -> list[IngestionResult]:
+        """Ingest multiple documents in sequence, accumulating and reporting batch errors."""
         if not documents:
             return []
 
@@ -63,3 +72,4 @@ class KnowledgeIngestionService:
             raise ProviderError(error_msg)
 
         return results
+

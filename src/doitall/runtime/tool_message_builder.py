@@ -1,3 +1,5 @@
+"""Tool execution result message conversion module."""
+
 from doitall.models.message import ToolMessage
 from doitall.models.tool_call import ToolResult
 
@@ -9,6 +11,7 @@ class ToolMessageBuilder:
         self,
         results: list[ToolResult],
     ) -> list[ToolMessage]:
+        """Convert list of ToolResult objects into ToolMessage instances."""
         return [
             ToolMessage(
                 tool_call_id=result.tool_call_id,
@@ -17,3 +20,4 @@ class ToolMessageBuilder:
             )
             for result in results
         ]
+

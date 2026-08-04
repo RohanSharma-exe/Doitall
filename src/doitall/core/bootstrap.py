@@ -1,5 +1,14 @@
+"""Application bootstrapping and service wiring module.
+
+Initializes logging, database connections, vector stores, provider registries,
+embedding services, knowledge stores, and skills, registering all dependencies
+into the global service container.
+"""
+
 from loguru import logger
 from qdrant_client import AsyncQdrantClient
+import logging
+import litellm
 
 import doitall.database.models  # noqa: F401 — registers SQLModel table metadata
 from doitall.config.logging import configure_logging
@@ -21,7 +30,9 @@ from doitall.skills.manager import SkillManager
 from doitall.skills.registry import SkillRegistry
 from doitall.workspace.workspace import Workspace
 
+# Global flag ensuring bootstrap logic only executes once per process lifecycle
 _bootstrap_has_run = False
+
 
 
 def bootstrap() -> None:
@@ -44,6 +55,12 @@ def bootstrap() -> None:
     _bootstrap_has_run = True
 
     configure_logging()
+
+    litellm.set_verbose = False
+
+    logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+    logging.getLogger("litellm").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     if settings.ENVIRONMENT == "production" and settings.DEBUG:
         raise RuntimeError("Refusing to start production with DEBUG=True")

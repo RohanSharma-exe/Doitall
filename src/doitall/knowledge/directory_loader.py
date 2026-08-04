@@ -1,3 +1,5 @@
+"""Directory document loader module for recursive file loading."""
+
 from pathlib import Path
 
 from doitall.knowledge.document import Document
@@ -8,10 +10,13 @@ from doitall.knowledge.txt_loader import TxtLoader
 
 
 class DirectoryLoader(DocumentLoader):
+    """Recursively scans directories and loads documents using extension-registered loaders."""
+
     def __init__(
         self,
         registry: LoaderRegistry | None = None,
     ) -> None:
+        """Initialize directory loader and register default .txt and .md file loaders."""
         self.registry = registry or LoaderRegistry()
 
         if ".txt" not in self.registry.extensions:
@@ -36,6 +41,7 @@ class DirectoryLoader(DocumentLoader):
         self,
         path: str,
     ) -> list[Document]:
+        """Recursively scan path directory and load documents using matching loaders."""
         documents: list[Document] = []
 
         for file in Path(path).rglob("*"):
@@ -50,3 +56,4 @@ class DirectoryLoader(DocumentLoader):
             documents.extend(loader.load(str(file)))
 
         return documents
+

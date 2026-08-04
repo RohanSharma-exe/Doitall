@@ -1,3 +1,5 @@
+"""Authentication dependencies for securing FastAPI endpoints with API keys."""
+
 import secrets
 
 from fastapi import Header, HTTPException, status
@@ -6,9 +8,11 @@ from doitall.config.settings import settings
 
 
 def _matches_configured_api_key(candidate: str | None) -> bool:
+    """Check constant-time digest equality between candidate API key and configured API key."""
     if not candidate or not settings.API_KEY:
         return False
     return secrets.compare_digest(candidate, settings.API_KEY)
+
 
 
 async def require_api_key(

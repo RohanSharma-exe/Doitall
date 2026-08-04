@@ -1,3 +1,5 @@
+"""Runtime context data model module."""
+
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -9,6 +11,7 @@ from doitall.models.tool_definition import ToolDefinition
 
 
 class RuntimeContext(BaseModel):
+
     """Context passed through the runtime execution pipeline.
 
     The RuntimeContext accumulates information from various context providers

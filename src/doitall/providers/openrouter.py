@@ -1,3 +1,5 @@
+"""OpenRouter provider integration module."""
+
 from typing import Any
 
 from doitall.config.settings import settings
@@ -7,6 +9,8 @@ from doitall.providers.client import LiteLLMClient
 
 
 class OpenrouterProvider(BaseProvider):
+    """Provider implementation for OpenRouter model API gateway via LiteLLM."""
+
     def __init__(self) -> None:
         super().__init__("openrouter")
         self.client = LiteLLMClient()
@@ -16,6 +20,7 @@ class OpenrouterProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ) -> ProviderResponse:
+        """Execute OpenRouter chat completion with optional tool calls."""
         tools = kwargs.pop("tools", [])
 
         if tools:
@@ -50,6 +55,7 @@ class OpenrouterProvider(BaseProvider):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ):
+        """Stream response chunks from OpenRouter models."""
         tools = kwargs.pop("tools", [])
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
@@ -61,6 +67,7 @@ class OpenrouterProvider(BaseProvider):
             yield chunk
 
     def _parse_usage(self, response: Any) -> dict[str, int]:
+        """Extract prompt, completion, and total token usage metrics."""
         usage = getattr(response, "usage", None)
         if usage is None:
             return {}
@@ -80,6 +87,7 @@ class OpenrouterProvider(BaseProvider):
         text: str,
         **kwargs: Any,
     ) -> list[float]:
+        """Generate text embeddings (not supported by OpenRouter)."""
         raise NotImplementedError
 
     async def health_check(self) -> bool:
@@ -93,3 +101,4 @@ class OpenrouterProvider(BaseProvider):
             return True
         except Exception:
             return False
+

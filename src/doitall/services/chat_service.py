@@ -1,3 +1,5 @@
+"""ChatService facade orchestrating context assembly, agent execution, and memory pipeline processing."""
+
 from loguru import logger
 
 from doitall.agent.executor import AgentExecutor
@@ -8,6 +10,8 @@ from doitall.services.conversation_service import ConversationService
 
 
 class ChatService:
+    """Orchestrates end-to-end chat flow for sync, async, and streaming responses."""
+
     def __init__(
         self,
         conversation_service: ConversationService,
@@ -15,6 +19,7 @@ class ChatService:
         agent_executor: AgentExecutor,
         memory_pipeline: MemoryPipeline,
     ) -> None:
+        """Initialize ChatService with core runtime dependencies."""
         self._conversation_service = conversation_service
         self._context_assembler = context_assembler
         self._agent_executor = agent_executor
@@ -27,7 +32,9 @@ class ChatService:
         provider: str | None = None,
         model: str | None = None,
     ):
+        """Stream LLM chat response chunks while updating conversation history and memory pipeline."""
         user_message = UserMessage(content=content)
+
         self._conversation_service.add_message(user_message)
 
         if model:
@@ -114,7 +121,7 @@ class ChatService:
             self._conversation_service.add_message(message)
 
         if response.usage_tokens:
-            logger.info(
+            logger.debug(
                 "LLM token usage provider={} model={} usage={}",
                 provider or "default",
                 response.model,

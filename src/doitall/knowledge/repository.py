@@ -1,9 +1,13 @@
+"""Abstract knowledge repository interface module."""
+
 from abc import ABC, abstractmethod
 
 from doitall.knowledge.document import Document
 
 
 class KnowledgeRepository(ABC):
+    """Abstract base class defining the contract for RAG document knowledge repositories."""
+
     @abstractmethod
     async def add(
         self,
@@ -26,3 +30,4 @@ class KnowledgeRepository(ABC):
     @abstractmethod
     def count(self) -> int:
         """Number of indexed chunks."""
+

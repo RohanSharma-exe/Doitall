@@ -106,15 +106,18 @@ class ConversationService:
 
     @property
     def conversation(self) -> Conversation:
+        """Return the underlying Conversation model, ensuring DB messages are hydrated."""
         self._ensure_hydrated()
         return self._conversation
 
     def add_message(self, message: Message) -> None:
+        """Add a Message to the conversation and persist to DB if repository configured."""
         self._ensure_hydrated()
         self._conversation.messages.append(message)
         self._persist(message)
 
     def messages(self) -> list[Message]:
+        """Return all messages in the current conversation."""
         self._ensure_hydrated()
         return list(self._conversation.messages)
 
@@ -127,13 +130,16 @@ class ConversationService:
         return list(self._conversation.messages[-limit:])
 
     def clear(self) -> None:
+        """Clear all messages from in-memory conversation and database session."""
         self._conversation.messages.clear()
         self._hydrated = False
         if self._repository and self._session_id:
             self._repository.clear_messages(self._session_id)
 
     def last_message(self) -> Message | None:
+        """Return the most recent message in the conversation, or None if empty."""
         self._ensure_hydrated()
         if not self._conversation.messages:
             return None
         return self._conversation.messages[-1]
+

@@ -12,6 +12,8 @@ def public_http_error(status_code: int, detail: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail=detail)
 
 
+# Standard public error response detail messages
 CHAT_FAILED = "Chat request failed."
 STREAM_FAILED = "Chat stream failed."
 INGEST_FAILED = "Knowledge ingestion failed."
+

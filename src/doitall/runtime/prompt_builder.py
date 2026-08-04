@@ -1,3 +1,5 @@
+"""Prompt builder module combining system instructions, memories, knowledge, and history."""
+
 from doitall.agent.manager import AgentManager
 from doitall.models.message import Message, SystemMessage
 from doitall.runtime.constants import (
@@ -9,6 +11,7 @@ from doitall.runtime.context import RuntimeContext
 
 
 class PromptBuilder:
+
     """Builds prompts for LLM providers from runtime context.
 
     The PromptBuilder constructs the final message sequence by combining

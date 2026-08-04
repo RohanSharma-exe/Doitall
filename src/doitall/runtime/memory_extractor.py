@@ -1,13 +1,18 @@
+"""Memory extraction module for creating memory objects from chat interactions."""
+
 from doitall.models.memory import Memory
 from doitall.models.message import AssistantMessage, UserMessage
 
 
 class MemoryExtractor:
+    """Extracts memory payload objects from user-assistant interaction pairs."""
+
     def extract(
         self,
         user: UserMessage,
         assistant: AssistantMessage,
     ) -> list[Memory]:
+        """Extract memory instances from user prompt and assistant response."""
         if not user.content.strip() and not assistant.content.strip():
             return []
 
@@ -27,3 +32,4 @@ class MemoryExtractor:
         if len(compacted) <= limit:
             return compacted
         return f"{compacted[:limit].rstrip()}…"
+

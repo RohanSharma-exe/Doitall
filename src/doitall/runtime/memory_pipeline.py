@@ -1,3 +1,5 @@
+"""Memory processing pipeline module."""
+
 from doitall.memory.manager import MemoryManager
 from doitall.models.message import AssistantMessage, UserMessage
 from doitall.runtime.memory_extractor import MemoryExtractor
@@ -6,6 +8,8 @@ from doitall.runtime.memory_scorer import MemoryScorer
 
 
 class MemoryPipeline:
+    """Coordinates memory extraction, filtering, scoring, and storage."""
+
     def __init__(
         self,
         manager: MemoryManager,
@@ -13,6 +17,7 @@ class MemoryPipeline:
         memory_filter: MemoryFilter,
         scorer: MemoryScorer,
     ) -> None:
+        """Initialize memory pipeline with manager, extractor, filter, and scorer."""
         self._manager = manager
         self._extractor = extractor
         self._filter = memory_filter
@@ -23,6 +28,7 @@ class MemoryPipeline:
         user: UserMessage,
         assistant: AssistantMessage,
     ) -> None:
+        """Extract, filter, score, and persist memories from user and assistant messages."""
         memories = self._extractor.extract(
             user,
             assistant,
@@ -35,3 +41,4 @@ class MemoryPipeline:
             memory = self._scorer.score(memory)
 
             await self._manager.add(memory)
+

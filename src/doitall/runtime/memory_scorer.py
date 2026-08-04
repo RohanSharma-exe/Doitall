@@ -1,8 +1,11 @@
+"""Memory importance scoring heuristic module."""
+
 from doitall.models.memory import Memory
 
 
 class MemoryScorer:
     """Scores memories based on importance and relevance."""
+
 
     def __init__(
         self,

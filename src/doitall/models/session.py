@@ -1,3 +1,5 @@
+"""Chat session data model."""
+
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -7,6 +9,8 @@ from doitall.models.conversation import Conversation
 
 
 class Session(BaseModel):
+    """Session container grouping metadata, timestamps, and conversation history."""
+
     id: str = Field(default_factory=lambda: str(uuid4()))
 
     title: str = "New Chat"
@@ -18,3 +22,4 @@ class Session(BaseModel):
     conversation: Conversation = Field(default_factory=Conversation)
 
     metadata: dict[str, str] = Field(default_factory=dict)
+

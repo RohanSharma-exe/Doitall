@@ -1,3 +1,5 @@
+"""Skill execution manager module."""
+
 import inspect
 from typing import Any
 
@@ -7,13 +9,14 @@ from doitall.skills.registry import SkillRegistry
 
 
 class SkillManager:
-    """Executes registered skills."""
+    """Executes registered skills by resolving their dependencies from ServiceContainer."""
 
     def __init__(
         self,
         registry: SkillRegistry,
         container: ServiceContainer,
     ) -> None:
+        """Initialize SkillManager with registry and dependency container."""
         self._registry = registry
         self._container = container
 
@@ -22,7 +25,9 @@ class SkillManager:
         name: str,
         **kwargs: Any,
     ) -> Any:
+        """Instantiate skill class, inject dependencies, validate status, and execute."""
         skill = self._create_skill(name)
+
 
         self._validate(skill)
 
