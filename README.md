@@ -367,7 +367,7 @@ Completed foundations:
 Planned improvements:
 
 - Redis-backed distributed rate limiting.
-- Provider connectivity health checks.
+- Provider connectivity health checks for all providers.
 - Streaming implementations across all provider adapters.
 - Additional loaders for PDF, HTML, DOCX, and GitHub repositories.
 - Per-agent permission scopes for tools.
