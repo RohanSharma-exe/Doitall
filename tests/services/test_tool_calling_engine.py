@@ -86,7 +86,7 @@ async def test_execute_multiple_tool_calls():
 
 
 @pytest.mark.asyncio
-async def test_execute_tool_calls_continues_after_failure():
+async def test_execute_tool_calls_continues_after_failure() -> None:
     registry = SkillRegistry()
     registry.register(CalculatorSkill)
 
