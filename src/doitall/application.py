@@ -1,5 +1,7 @@
 """Main application facade module for Doitall agent framework."""
 
+from collections.abc import AsyncIterator
+
 from doitall.agent.agent import Agent
 from doitall.commands import default_registry
 from doitall.commands.executor import SlashCommandExecutor
@@ -42,7 +44,7 @@ class Doitall:
     async def stream_chat(
         self,
         message: str,
-    ):
+    ) -> AsyncIterator[str]:
         """Stream response tokens for user prompt or execute slash command if prefixed."""
         if self._command_executor.is_command(message):
             result = await self._command_executor.execute(message)

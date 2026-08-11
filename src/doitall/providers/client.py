@@ -1,5 +1,6 @@
 """Unified LiteLLM async client wrapper module."""
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 from litellm import (
@@ -29,7 +30,7 @@ class LiteLLMClient:
         model: str,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ):
+    ) -> AsyncIterator[str]:
         """Stream chat completion text deltas from LiteLLM."""
         try:
             stream = await acompletion(

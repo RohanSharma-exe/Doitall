@@ -1,8 +1,10 @@
 """SessionRepository — thin data-access layer for sessions and messages."""
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime
 
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from doitall.database.models import MessageRecord, SessionRecord
 from doitall.database.session import get_session as _default_get_session
@@ -32,7 +34,10 @@ class SessionRepository:
         repo = SessionRepository(session_factory=factory)
     """
 
-    def __init__(self, session_factory=None) -> None:
+    def __init__(
+        self,
+        session_factory: Callable[[], AbstractContextManager[Session]] | None = None,
+    ) -> None:
         self._get_session = session_factory or _default_get_session
 
     # ------------------------------------------------------------------

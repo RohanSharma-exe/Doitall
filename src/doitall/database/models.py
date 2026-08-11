@@ -2,16 +2,21 @@
 
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
 
 def _now() -> datetime:
+    """Return the current UTC datetime."""
     return datetime.now(UTC)
 
 
 class SessionRecord(SQLModel, table=True):
-    """One row per chat session. Keyed by the client-supplied session_id."""
+    """One row per chat session.
+
+    The session is keyed by the client-supplied session_id.
+    """
 
     __tablename__ = "sessions"
 
@@ -31,14 +36,23 @@ class MessageRecord(SQLModel, table=True):
     __tablename__ = "messages"
 
     id: int | None = Field(default=None, primary_key=True)
-    session_id: str = Field(foreign_key="sessions.session_id", index=True)
+    session_id: str = Field(
+        foreign_key="sessions.session_id",
+        index=True,
+    )
     role: str  # user | assistant | system | tool
-    content: str = Field(default="", sa_column=Column(Text))
+    content: str = Field(
+        default="",
+        sa_column=Column(Text),
+    )
 
-    # AssistantMessage may carry tool_calls (stored as a JSON string)
-    tool_calls_json: str | None = Field(default=None, sa_column=Column(Text))
+    # AssistantMessage may carry tool_calls (stored as a JSON string).
+    tool_calls_json: str | None = Field(
+        default=None,
+        sa_column=Column(Text),
+    )
 
-    # ToolMessage extra fields
+    # ToolMessage extra fields.
     tool_call_id: str | None = Field(default=None)
     name: str | None = Field(default=None)
 
@@ -50,10 +64,18 @@ class MessageRecord(SQLModel, table=True):
     # Helpers for serialising / deserialising tool_calls list
     # ------------------------------------------------------------------
 
-    def set_tool_calls(self, tool_calls: list[dict]) -> None:
+    def set_tool_calls(self, tool_calls: list[dict[str, Any]]) -> None:
+        """Serialize tool calls into the database JSON column."""
         self.tool_calls_json = json.dumps(tool_calls) if tool_calls else None
 
-    def get_tool_calls(self) -> list[dict]:
+    def get_tool_calls(self) -> list[dict[str, Any]]:
+        """Deserialize tool calls from the database JSON column."""
         if not self.tool_calls_json:
             return []
-        return json.loads(self.tool_calls_json)
+
+        value = json.loads(self.tool_calls_json)
+
+        if not isinstance(value, list):
+            return []
+
+        return value

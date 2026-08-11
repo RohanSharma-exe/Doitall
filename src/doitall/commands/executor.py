@@ -123,6 +123,10 @@ class SlashCommandExecutor:
 
             return CommandResult(content=str(result))
 
+        return CommandResult(
+            content=f"Command '{command_name}' is registered but not yet implemented.",
+        )
+
     def _help(self) -> str:
         commands = self._registry.list()
         lines = ["Available commands:"]

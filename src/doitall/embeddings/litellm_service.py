@@ -1,6 +1,7 @@
 """LiteLLM embedding service implementation module."""
 
 import asyncio
+from typing import Any, cast
 
 from litellm import aembedding, embedding
 from litellm.exceptions import (
@@ -27,6 +28,7 @@ class LiteLLMEmbeddingService(EmbeddingService):
         self,
         text: str,
     ) -> list[float]:
+        """Generate an embedding for a single text."""
         if not text or not text.strip():
             raise ValueError("Text cannot be empty")
 
@@ -35,7 +37,8 @@ class LiteLLMEmbeddingService(EmbeddingService):
                 model=self.model,
                 input=text,
             )
-            return response.data[0]["embedding"]
+            embedding_data: Any = response.data[0]["embedding"]
+            return cast(list[float], embedding_data)
         except AuthenticationError as e:
             raise ConfigurationError(
                 f"Authentication failed for embedding model {self.model}: {e}"
@@ -59,12 +62,14 @@ class LiteLLMEmbeddingService(EmbeddingService):
         self,
         text: str,
     ) -> list[float]:
+        """Generate a single embedding using the synchronous LiteLLM API."""
         try:
             response = embedding(
                 model=self.model,
                 input=text,
             )
-            return response.data[0]["embedding"]
+            embedding_data: Any = response.data[0]["embedding"]
+            return cast(list[float], embedding_data)
         except AuthenticationError as e:
             raise ConfigurationError(
                 f"Authentication failed for embedding model {self.model}: {e}"
@@ -82,6 +87,7 @@ class LiteLLMEmbeddingService(EmbeddingService):
         self,
         texts: list[str],
     ) -> list[list[float]]:
+        """Generate embeddings for multiple texts."""
         if not texts:
             return []
 
@@ -90,7 +96,7 @@ class LiteLLMEmbeddingService(EmbeddingService):
                 model=self.model,
                 input=texts,
             )
-            return [item["embedding"] for item in response.data]
+            return [cast(list[float], item["embedding"]) for item in response.data]
         except AuthenticationError as e:
             raise ConfigurationError(
                 f"Authentication failed for embedding model {self.model}: {e}"
@@ -114,12 +120,13 @@ class LiteLLMEmbeddingService(EmbeddingService):
         self,
         texts: list[str],
     ) -> list[list[float]]:
+        """Generate multiple embeddings using the synchronous LiteLLM API."""
         try:
             response = embedding(
                 model=self.model,
                 input=texts,
             )
-            return [item["embedding"] for item in response.data]
+            return [cast(list[float], item["embedding"]) for item in response.data]
         except AuthenticationError as e:
             raise ConfigurationError(
                 f"Authentication failed for embedding model {self.model}: {e}"

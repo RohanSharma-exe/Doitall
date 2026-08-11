@@ -13,12 +13,14 @@ Or via the CLI:
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from loguru import logger
+from starlette.middleware.base import RequestResponseEndpoint
 
 from doitall.api.routes import chat, commands, health, knowledge, providers, system
 from doitall.config.settings import settings
@@ -26,8 +28,10 @@ from doitall.core.bootstrap import async_bootstrap, bootstrap, cleanup
 from doitall.core.exceptions import DoitallError
 from doitall.security.auth import require_metrics_api_key
 
-# In-process fixed-window request limiter. Suitable for single-process deployments;
-# use an external store (Redis) for horizontally scaled deployments.
+# WARNING: In-process fixed-window request limiter. State is NOT shared across
+# processes or replicas. Before running more than one instance (e.g. behind a
+# load balancer), replace this with a shared store such as Redis to avoid each
+# replica enforcing its own independent limit.
 _rate_buckets: dict[str, deque[float]] = defaultdict(deque)
 _request_counts: dict[str, int] = defaultdict(int)
 _last_rate_bucket_cleanup = 0.0
@@ -101,7 +105,7 @@ def _request_route_label(request: Request) -> str:
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Bootstrap the framework on startup and clean up on shutdown."""
     logger.info("Starting Doitall API…")
     bootstrap()  # sync: wire all services into the DI container
@@ -147,7 +151,10 @@ def create_app() -> FastAPI:
 
     # --- Request ID, request logging, and rate limiting ---
     @app.middleware("http")
-    async def request_middleware(request: Request, call_next):
+    async def request_middleware(
+        request: Request,
+        call_next: RequestResponseEndpoint,
+    ) -> Response:
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
         start = time.perf_counter()
 
@@ -160,8 +167,9 @@ def create_app() -> FastAPI:
                     request.url.path,
                     key.split(":", 1)[0],
                 )
-                response = JSONResponse(
-                    status_code=429, content={"detail": "Rate limit exceeded"}
+                response: Response = JSONResponse(
+                    status_code=429,
+                    content={"detail": "Rate limit exceeded"},
                 )
                 response.headers["X-Request-ID"] = request_id
                 return response
@@ -211,7 +219,7 @@ def create_app() -> FastAPI:
         include_in_schema=False,
         dependencies=[Depends(require_metrics_api_key)],
     )
-    async def metrics():
+    async def metrics() -> Response:
         lines = ["# TYPE doitall_http_requests_total counter"]
         for key, count in sorted(_request_counts.items()):
             method, path, status_code = key.rsplit(" ", 2)
@@ -223,7 +231,7 @@ def create_app() -> FastAPI:
         return Response("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
     @app.get("/", include_in_schema=False)
-    async def root():
+    async def root() -> dict[str, str]:
         return {
             "name": settings.APP_NAME,
             "version": settings.APP_VERSION,

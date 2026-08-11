@@ -1,0 +1,53 @@
+# Version control
+.git/
+.gitignore
+
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Linting / typing caches
+.ruff_cache/
+.mypy_cache/
+
+# Logs
+logs/
+*.log
+
+# Documentation
+docs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Storage & databases
+storage/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+check/
+ruff/
+tmp/
+examples/
+scripts/

@@ -24,9 +24,9 @@ class KnowledgeRepository(ABC):
         """Semantic search."""
 
     @abstractmethod
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Delete indexed documents."""
 
     @abstractmethod
-    def count(self) -> int:
+    async def count(self) -> int:
         """Number of indexed chunks."""

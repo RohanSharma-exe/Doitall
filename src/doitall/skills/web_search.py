@@ -1,16 +1,52 @@
 """Web search and page fetch skills."""
 
+import re
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import httpx
 
 from doitall.models.tool_definition import ToolDefinition
 from doitall.skills.base import BaseSkill
 
+_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+_RESULT_BLOCK_RE = re.compile(
+    r'<a rel="nofollow" class="result__a" href="(?P<url>[^"]+)">(?P<title>.*?)</a>'
+    r'.*?class="result__snippet"[^>]*>(?P<snippet>.*?)</a>',
+    re.DOTALL,
+)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _clean_html_text(fragment: str) -> str:
+    text = _TAG_RE.sub("", fragment)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _unwrap_ddg_redirect(url: str) -> str:
+    # DDG HTML results wrap outbound links as //duckduckgo.com/l/?uddg=<encoded>&...
+    if "uddg=" in url:
+        try:
+            encoded = url.split("uddg=", 1)[1].split("&", 1)[0]
+            return unquote(encoded)
+        except Exception:
+            return url
+    return url
+
 
 class WebSearchSkill(BaseSkill):
-    """Searches the web using DuckDuckGo Instant Answer API."""
+    """Searches the web using DuckDuckGo's HTML results page.
+
+    Note: this scrapes a public HTML endpoint rather than calling a
+    documented API, so the markup could change and break the parser.
+    For a more stable/production setup, swap this out for a proper
+    search API (Brave Search API, Tavily, Serper, etc.) that returns
+    structured JSON and doesn't rely on parsing HTML.
+    """
 
     name = "web_search"
     description = "Search the web for current information and return concise results."
@@ -36,67 +72,53 @@ class WebSearchSkill(BaseSkill):
             },
         )
 
-    async def execute(self, *, query: str, limit: int = 5) -> dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        query: str = kwargs["query"]
+        limit: int = kwargs.get("limit", 5)
         query = query.strip()
         if not query:
             raise ValueError("Search query cannot be empty.")
 
         limit = max(1, min(limit, 10))
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            response = await client.get(
-                "https://api.duckduckgo.com/",
-                params={
-                    "q": query,
-                    "format": "json",
-                    "no_html": 1,
-                    "skip_disambig": 1,
-                },
-            )
-            response.raise_for_status()
-            payload = response.json()
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=10.0, follow_redirects=True, headers={"User-Agent": _UA}
+            ) as client:
+                response = await client.post(
+                    "https://html.duckduckgo.com/html/",
+                    data={"q": query},
+                )
+                response.raise_for_status()
+                html = response.text
+        except httpx.HTTPError as exc:
+            return {"query": query, "results": [], "error": str(exc)}
 
         results: list[dict[str, str]] = []
-        abstract_url = payload.get("AbstractURL")
-        if payload.get("AbstractText") and abstract_url:
-            results.append(
-                {
-                    "title": payload.get("Heading") or query,
-                    "url": abstract_url,
-                    "snippet": payload["AbstractText"],
-                }
-            )
-
-        for topic in payload.get("RelatedTopics", []):
-            self._collect_topic(topic, results, limit)
+        for match in _RESULT_BLOCK_RE.finditer(html):
             if len(results) >= limit:
                 break
+            url = _unwrap_ddg_redirect(match.group("url"))
+            title = _clean_html_text(match.group("title"))
+            snippet = _clean_html_text(match.group("snippet"))
+            if url and title:
+                results.append({"title": title, "url": url, "snippet": snippet})
 
-        return {"query": query, "results": results[:limit]}
-
-    def _collect_topic(
-        self, topic: dict[str, Any], results: list[dict[str, str]], limit: int
-    ) -> None:
-        if len(results) >= limit:
-            return
-        if "Topics" in topic:
-            for nested in topic["Topics"]:
-                self._collect_topic(nested, results, limit)
-                if len(results) >= limit:
-                    return
-            return
-        url = topic.get("FirstURL")
-        text = topic.get("Text")
-        if url and text:
-            results.append(
-                {"title": text.split(" - ", 1)[0], "url": url, "snippet": text}
-            )
+        return {"query": query, "results": results}
 
 
 class WebFetchSkill(BaseSkill):
-    """Fetches text from an HTTP(S) URL."""
+    """Fetches readable text from an HTTP(S) URL."""
 
     name = "web_fetch"
     description = "Fetch the text content of a public HTTP or HTTPS URL."
+
+    _TEXTUAL_TYPES = (
+        "text/",
+        "application/json",
+        "application/xml",
+        "application/xhtml",
+    )
 
     @classmethod
     def definition(cls) -> ToolDefinition:
@@ -119,17 +141,46 @@ class WebFetchSkill(BaseSkill):
             },
         )
 
-    async def execute(self, *, url: str, max_chars: int = 4000) -> dict[str, Any]:
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        url: str = kwargs["url"]
+        max_chars: int = kwargs.get("max_chars", 4000)
         parsed = urlparse(url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("Only absolute http(s) URLs are supported.")
         max_chars = max(200, min(max_chars, 12000))
 
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            content_type = response.headers.get("content-type", "")
-            text = response.text
+        try:
+            async with httpx.AsyncClient(
+                timeout=10.0, follow_redirects=True, headers={"User-Agent": _UA}
+            ) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            return {"url": url, "error": str(exc)}
+
+        content_type = response.headers.get("content-type", "")
+        if not any(t in content_type for t in self._TEXTUAL_TYPES):
+            return {
+                "url": str(response.url),
+                "status_code": response.status_code,
+                "content_type": content_type,
+                "text": "",
+                "truncated": False,
+                "note": "Skipped: non-textual content type.",
+            }
+
+        raw_text = response.text
+        if "html" in content_type:
+            # Strip script/style blocks, then tags, to avoid dumping raw markup.
+            no_scripts = re.sub(
+                r"<(script|style)[^>]*>.*?</\1>",
+                "",
+                raw_text,
+                flags=re.DOTALL | re.IGNORECASE,
+            )
+            text = _clean_html_text(no_scripts)
+        else:
+            text = raw_text
 
         return {
             "url": str(response.url),

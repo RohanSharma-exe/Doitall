@@ -2,6 +2,7 @@
 
 import time
 import uuid
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from threading import Lock
 
@@ -59,7 +60,11 @@ _repo = SessionRepository()
 def _get_repo() -> SessionRepository:
     """Return the bootstrapped session repository when available."""
     if container.has("session_repository"):
-        return container.resolve("session_repository")
+        repository = container.resolve("session_repository")
+        if not isinstance(repository, SessionRepository):
+            raise TypeError("Registered session_repository has an invalid type.")
+        return repository
+
     return _repo
 
 
@@ -207,7 +212,7 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         payload = orjson.dumps(event.model_dump()).decode("utf-8")
         return f"id: {event.id}\nevent: {event.event}\ndata: {payload}\n\n"
 
-    async def event_source():
+    async def event_source() -> AsyncIterator[str]:
         try:
             command_executor = _get_command_executor()
             if command_executor and command_executor.is_command(request.message):

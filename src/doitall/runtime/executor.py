@@ -1,4 +1,5 @@
 import json
+from collections.abc import AsyncIterator
 from typing import Any
 
 from loguru import logger
@@ -82,7 +83,7 @@ class RuntimeExecutor:
     async def stream(
         self,
         context: RuntimeContext,
-    ):
+    ) -> AsyncIterator[Any]:
         messages = self.prepare(context)
         payload = self._payload(messages)
         errors: list[Exception] = []

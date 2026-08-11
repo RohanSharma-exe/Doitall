@@ -31,7 +31,7 @@ class MemorySerializer:
         return Memory(
             id=memory_id,
             content=payload["content"],
-            source=payload.get("source"),
+            source=payload.get("source", "conversation"),
             importance=payload.get("importance", 0.5),
             created_at=datetime.fromisoformat(payload["created_at"]),
             metadata=payload.get("metadata", {}),

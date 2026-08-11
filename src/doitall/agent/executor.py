@@ -1,5 +1,8 @@
 """Agent execution coordinator managing iterative tool-calling loops."""
 
+from collections.abc import AsyncIterator
+from typing import Any
+
 from loguru import logger
 
 from doitall.models.message import AssistantMessage
@@ -29,7 +32,7 @@ class AgentExecutor:
     async def stream(
         self,
         context: RuntimeContext,
-    ):
+    ) -> AsyncIterator[Any]:
         """Stream chat response chunks from the runtime executor."""
         async for chunk in self._runtime.stream(context):
             yield chunk

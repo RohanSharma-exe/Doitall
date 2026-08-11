@@ -1,9 +1,12 @@
 """ChatService facade orchestrating context assembly, agent execution, and memory pipeline processing."""
 
+from collections.abc import AsyncIterator
+
 from loguru import logger
 
 from doitall.agent.executor import AgentExecutor
 from doitall.models.message import AssistantMessage, UserMessage
+from doitall.models.provider_response import ProviderResponse
 from doitall.runtime.context_assembler import ContextAssembler
 from doitall.runtime.memory_pipeline import MemoryPipeline
 from doitall.services.conversation_service import ConversationService
@@ -31,7 +34,7 @@ class ChatService:
         *,
         provider: str | None = None,
         model: str | None = None,
-    ):
+    ) -> AsyncIterator[str]:
         """Stream LLM chat response chunks while updating conversation history and memory pipeline."""
         user_message = UserMessage(content=content)
 
@@ -85,7 +88,7 @@ class ChatService:
         *,
         provider: str | None = None,
         model: str | None = None,
-    ):
+    ) -> ProviderResponse:
         user_message = UserMessage(
             content=content,
         )

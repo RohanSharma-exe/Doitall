@@ -1,5 +1,6 @@
 """Ollama local provider integration module."""
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -56,7 +57,7 @@ class OllamaProvider(BaseProvider):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ):
+    ) -> AsyncIterator[str]:
         """Stream response chunks from local Ollama model."""
         tools = kwargs.pop("tools", [])
         if tools:

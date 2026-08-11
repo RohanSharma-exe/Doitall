@@ -140,7 +140,7 @@ def bootstrap() -> None:
 
     register_builtin_skills(skill_registry)
 
-    workspace = Workspace(settings.BASE_DIR)
+    workspace = Workspace(settings.DATA_DIR)
 
     # --- Register all services in the DI container ---
     container.register("settings", settings)

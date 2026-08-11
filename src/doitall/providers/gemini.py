@@ -1,5 +1,6 @@
 """Google Gemini provider integration module."""
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 from doitall.config.settings import settings
@@ -54,7 +55,7 @@ class GeminiProvider(BaseProvider):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ):
+    ) -> AsyncIterator[str]:
         """Stream response chunks from Gemini models."""
         tools = kwargs.pop("tools", [])
         if tools:

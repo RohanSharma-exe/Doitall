@@ -1,6 +1,7 @@
 """Time and timezone querying skill module."""
 
 from datetime import UTC, datetime
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from doitall.models.tool_definition import ToolDefinition
@@ -32,7 +33,8 @@ class TimeSkill(BaseSkill):
             },
         )
 
-    async def execute(self, timezone: str = "UTC") -> dict[str, str]:
+    async def execute(self, **kwargs: Any) -> dict[str, str]:
+        timezone: str = kwargs.get("timezone", "UTC")
         try:
             tz = ZoneInfo(timezone)
         except ZoneInfoNotFoundError as exc:

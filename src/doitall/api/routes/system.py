@@ -12,7 +12,7 @@ from doitall.services.registry import container
 router = APIRouter(dependencies=[Depends(require_api_key)])
 
 ExtensionKind = Literal["connector", "mcp_server", "plugin"]
-_extension_options: dict[str, list[dict[str, str]]] = {
+_extension_options: dict[ExtensionKind, list[dict[str, str]]] = {
     "connector": [],
     "mcp_server": [],
     "plugin": [],

@@ -8,6 +8,7 @@ import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Mapping
 from typing import Any
+from uuid import uuid4
 
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall
@@ -66,7 +67,7 @@ class BaseProvider(ABC):
         self,
         prompt: str,
         **kwargs: Any,
-    ):
+    ) -> Any:
         """Generate images based on textual prompt."""
         raise NotImplementedError(f"{self.name} does not support image generation.")
 
@@ -82,7 +83,7 @@ class BaseProvider(ABC):
         self,
         text: str,
         **kwargs: Any,
-    ):
+    ) -> Any:
         """Synthesize text input into audio speech."""
         raise NotImplementedError(f"{self.name} does not support text-to-speech.")
 
@@ -91,7 +92,7 @@ class BaseProvider(ABC):
         messages: list[dict],
         tools: list[dict],
         **kwargs: Any,
-    ):
+    ) -> Any:
         """Execute chat completion with tool calling capabilities."""
         raise NotImplementedError(f"{self.name} does not support tool calling.")
 
@@ -140,7 +141,7 @@ class BaseProvider(ABC):
             raw_arguments = getattr(call.function, "arguments", {})
             tool_calls.append(
                 ToolCall(
-                    id=call.id,
+                    id=call.id or str(uuid4()),
                     name=call.function.name,
                     arguments=self._parse_tool_arguments(raw_arguments),
                 )
