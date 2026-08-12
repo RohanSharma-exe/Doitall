@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from doitall.models.provider_response import ProviderResponse
@@ -128,4 +130,118 @@ async def test_execute_tool_calls_continues_after_failure() -> None:
 
     assert results[1].tool_call_id == "successful"
     assert results[1].name == "calculator"
+    assert results[1].result == 50
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_call_times_out(monkeypatch: pytest.MonkeyPatch) -> None:
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    executor = ToolExecutor(manager)
+    engine = ToolCallingEngine(executor)
+
+    async def slow_execute(
+        name: str,
+        arguments: dict[str, object],
+    ) -> object:
+        await asyncio.sleep(1)
+        return "should not complete"
+
+    monkeypatch.setattr(
+        executor,
+        "execute",
+        slow_execute,
+    )
+
+    monkeypatch.setattr(
+        "doitall.services.tool_calling_engine.settings.TOOL_EXECUTION_TIMEOUT_SECONDS",
+        0.01,
+    )
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="timeout",
+                name="slow_tool",
+                arguments={},
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 1
+    assert results[0].tool_call_id == "timeout"
+    assert results[0].name == "slow_tool"
+    assert results[0].result == "Tool execution timed out after 0.01 seconds."
+
+
+@pytest.mark.asyncio
+async def test_timeout_does_not_prevent_remaining_tools(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    executor = ToolExecutor(manager)
+    engine = ToolCallingEngine(executor)
+
+    monkeypatch.setattr(
+        "doitall.services.tool_calling_engine.settings.TOOL_EXECUTION_TIMEOUT_SECONDS",
+        0.01,
+    )
+
+    original_execute = executor.execute
+
+    async def execute_with_one_timeout(
+        name: str,
+        arguments: dict[str, object],
+    ) -> object:
+        if name == "slow_tool":
+            await asyncio.sleep(1)
+
+        return await original_execute(name, arguments)
+
+    executor.execute = execute_with_one_timeout  # type: ignore[method-assign]
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="timeout",
+                name="slow_tool",
+                arguments={},
+            ),
+            ToolCall(
+                id="successful",
+                name="calculator",
+                arguments={
+                    "expression": "10*5",
+                },
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 2
+
+    assert results[0].tool_call_id == "timeout"
+    assert results[0].result.startswith("Tool execution timed out")
+
+    assert results[1].tool_call_id == "successful"
     assert results[1].result == 50

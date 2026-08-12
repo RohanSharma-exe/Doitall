@@ -130,6 +130,12 @@ class Settings(BaseSettings):
     """Seconds before an LLM completion call is aborted. Set higher for slow models."""
 
     # ----------------------------
+    # Tool execution timeout
+    # ----------------------------
+    TOOL_EXECUTION_TIMEOUT_SECONDS: int = 30
+    """Seconds before an individual tool execution is aborted."""
+
+    # ----------------------------
     # Paths
     # ----------------------------
     BASE_DIR: Path = BASE_DIR
