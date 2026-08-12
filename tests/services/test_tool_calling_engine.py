@@ -441,6 +441,7 @@ async def test_successful_tool_execution_includes_metadata() -> None:
     assert results[0].metadata is not None
     assert results[0].metadata.status == "success"
     assert results[0].metadata.duration_ms >= 0
+    assert results[0].metadata.duration_ms < 1000
     assert results[0].metadata.error is None
 
 

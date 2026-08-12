@@ -80,23 +80,41 @@ class ToolCallingEngine:
 
             duration_ms = (time.perf_counter() - start) * 1000
 
+            metadata = ToolExecutionMetadata(
+                status="success",
+                duration_ms=duration_ms,
+            )
+
+            logger.bind(
+                tool_name=call.name,
+                tool_call_id=call.id,
+                status=metadata.status,
+                duration_ms=metadata.duration_ms,
+            ).info("Tool execution completed")
+
             return ToolResult(
                 tool_call_id=call.id,
                 name=call.name,
                 result=value,
-                metadata=ToolExecutionMetadata(
-                    status="success",
-                    duration_ms=duration_ms,
-                ),
+                metadata=metadata,
             )
 
         except TimeoutError:
             duration_ms = (time.perf_counter() - start) * 1000
 
-            logger.warning(
-                "Tool execution timed out name={} tool_call_id={} timeout={}s",
-                call.name,
-                call.id,
+            metadata = ToolExecutionMetadata(
+                status="timeout",
+                duration_ms=duration_ms,
+                error="timeout",
+            )
+
+            logger.bind(
+                tool_name=call.name,
+                tool_call_id=call.id,
+                status=metadata.status,
+                duration_ms=metadata.duration_ms,
+            ).warning(
+                "Tool execution timed out timeout={}s",
                 settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
             )
 
@@ -107,20 +125,25 @@ class ToolCallingEngine:
                     "Tool execution timed out after "
                     f"{settings.TOOL_EXECUTION_TIMEOUT_SECONDS} seconds."
                 ),
-                metadata=ToolExecutionMetadata(
-                    status="timeout",
-                    duration_ms=duration_ms,
-                    error="timeout",
-                ),
+                metadata=metadata,
             )
 
         except Exception as exc:
             duration_ms = (time.perf_counter() - start) * 1000
 
-            logger.warning(
-                "Tool execution failed name={} tool_call_id={} error={}",
-                call.name,
-                call.id,
+            metadata = ToolExecutionMetadata(
+                status="error",
+                duration_ms=duration_ms,
+                error=str(exc),
+            )
+
+            logger.bind(
+                tool_name=call.name,
+                tool_call_id=call.id,
+                status=metadata.status,
+                duration_ms=metadata.duration_ms,
+            ).warning(
+                "Tool execution failed error={}",
                 exc,
             )
 
@@ -128,9 +151,5 @@ class ToolCallingEngine:
                 tool_call_id=call.id,
                 name=call.name,
                 result=f"Tool execution failed: {exc}",
-                metadata=ToolExecutionMetadata(
-                    status="error",
-                    duration_ms=duration_ms,
-                    error=str(exc),
-                ),
+                metadata=metadata,
             )
