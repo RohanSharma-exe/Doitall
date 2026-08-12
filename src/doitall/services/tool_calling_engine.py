@@ -6,7 +6,7 @@ from loguru import logger
 
 from doitall.config.settings import settings
 from doitall.models.provider_response import ProviderResponse
-from doitall.models.tool_call import ToolResult
+from doitall.models.tool_call import ToolCall, ToolResult
 from doitall.services.tool_executor import ToolExecutor
 
 
@@ -24,66 +24,67 @@ class ToolCallingEngine:
         self,
         response: ProviderResponse,
     ) -> list[ToolResult]:
-        """Execute all requested tool calls independently.
+        """Execute all requested tool calls concurrently.
 
         A failure or timeout in one tool call does not prevent remaining
         tool calls from executing. Failed calls are converted into
-        ToolResult objects so the agent can report the failure back to
-        the LLM.
+        ToolResult objects so the agent can report the failure back
+        to the LLM.
         """
-        results: list[ToolResult] = []
+        tasks = [self._execute_single(call) for call in response.tool_calls]
 
-        for call in response.tool_calls:
-            try:
-                value = await asyncio.wait_for(
-                    self._executor.execute(
-                        call.name,
-                        call.arguments,
-                    ),
-                    timeout=settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
-                )
+        if not tasks:
+            return []
 
-                results.append(
-                    ToolResult(
-                        tool_call_id=call.id,
-                        name=call.name,
-                        result=value,
-                    ),
-                )
+        return list(await asyncio.gather(*tasks))
 
-            except TimeoutError:
-                logger.warning(
-                    "Tool execution timed out name={} tool_call_id={} timeout={}s",
+    async def _execute_single(
+        self,
+        call: ToolCall,
+    ) -> ToolResult:
+        """Execute one tool call with timeout and failure isolation."""
+        try:
+            value = await asyncio.wait_for(
+                self._executor.execute(
                     call.name,
-                    call.id,
-                    settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
-                )
+                    call.arguments,
+                ),
+                timeout=settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
+            )
 
-                results.append(
-                    ToolResult(
-                        tool_call_id=call.id,
-                        name=call.name,
-                        result=(
-                            "Tool execution timed out after "
-                            f"{settings.TOOL_EXECUTION_TIMEOUT_SECONDS} seconds."
-                        ),
-                    ),
-                )
+            return ToolResult(
+                tool_call_id=call.id,
+                name=call.name,
+                result=value,
+            )
 
-            except Exception as exc:
-                logger.warning(
-                    "Tool execution failed name={} tool_call_id={} error={}",
-                    call.name,
-                    call.id,
-                    exc,
-                )
+        except TimeoutError:
+            logger.warning(
+                "Tool execution timed out name={} tool_call_id={} timeout={}s",
+                call.name,
+                call.id,
+                settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
+            )
 
-                results.append(
-                    ToolResult(
-                        tool_call_id=call.id,
-                        name=call.name,
-                        result=f"Tool execution failed: {exc}",
-                    ),
-                )
+            return ToolResult(
+                tool_call_id=call.id,
+                name=call.name,
+                result=(
+                    "Tool execution timed out after "
+                    f"{settings.TOOL_EXECUTION_TIMEOUT_SECONDS} seconds."
+                ),
+            )
 
-        return results
+        except Exception as exc:
+            logger.warning(
+                "Tool execution failed name={} tool_call_id={} error={}",
+                call.name,
+                call.id,
+                exc,
+            )
+
+            return ToolResult(
+                tool_call_id=call.id,
+                name=call.name,
+                result=f"Tool execution failed: {exc}",
+            )
