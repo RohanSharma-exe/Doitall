@@ -111,3 +111,69 @@ async def test_constructor_dependency_injection():
     result = await manager.execute("dependency")
 
     assert result == "world"
+
+
+@pytest.mark.asyncio
+async def test_invalid_arguments_raise_skill_error() -> None:
+    """Reject arguments that do not match the skill input schema."""
+    from doitall.skills.calculator import CalculatorSkill
+
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    with pytest.raises(SkillError, match="Invalid arguments"):
+        await manager.execute(
+            "calculator",
+            expression=123,
+        )
+
+
+@pytest.mark.asyncio
+async def test_missing_required_argument_raises_skill_error() -> None:
+    """Reject tool calls missing required arguments."""
+    from doitall.skills.calculator import CalculatorSkill
+
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    with pytest.raises(SkillError, match="Invalid arguments"):
+        await manager.execute(
+            "calculator",
+        )
+
+
+@pytest.mark.asyncio
+async def test_unknown_argument_raises_skill_error() -> None:
+    """Reject arguments not declared by the skill schema."""
+    from doitall.skills.calculator import CalculatorSkill
+
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    with pytest.raises(SkillError, match="Invalid arguments"):
+        await manager.execute(
+            "calculator",
+            expression="2+3",
+            unexpected="value",
+        )

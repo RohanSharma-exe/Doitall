@@ -3,6 +3,10 @@
 import inspect
 from typing import Any
 
+from jsonschema import ValidationError as JSONSchemaValidationError
+from jsonschema import validate
+
+from doitall.core.exceptions import SkillError
 from doitall.services.container import ServiceContainer
 from doitall.skills.base import BaseSkill
 from doitall.skills.registry import SkillRegistry
@@ -25,10 +29,11 @@ class SkillManager:
         name: str,
         **kwargs: Any,
     ) -> Any:
-        """Instantiate skill class, inject dependencies, validate status, and execute."""
+        """Instantiate, validate, and execute a registered skill."""
         skill = self._create_skill(name)
 
         self._validate(skill)
+        self._validate_arguments(skill, kwargs)
 
         return await self._execute(
             skill,
@@ -39,6 +44,7 @@ class SkillManager:
         self,
         name: str,
     ) -> BaseSkill:
+        """Create a skill instance with dependencies injected."""
         skill_class = self._registry.get(name)
 
         signature = inspect.signature(skill_class.__init__)
@@ -72,14 +78,37 @@ class SkillManager:
         self,
         skill: BaseSkill,
     ) -> None:
+        """Validate that the skill is enabled."""
         if not skill.enabled:
             raise ValueError(
                 f"Skill '{skill.name}' is disabled.",
             )
+
+    def _validate_arguments(
+        self,
+        skill: BaseSkill,
+        arguments: dict[str, Any],
+    ) -> None:
+        """Validate tool arguments against the skill's declared JSON schema."""
+        schema = skill.definition().input_schema
+
+        if not schema:
+            return
+
+        try:
+            validate(
+                instance=arguments,
+                schema=schema,
+            )
+        except JSONSchemaValidationError as exc:
+            raise SkillError(
+                f"Invalid arguments for skill '{skill.name}': {exc.message}"
+            ) from exc
 
     async def _execute(
         self,
         skill: BaseSkill,
         **kwargs: Any,
     ) -> Any:
+        """Execute a validated skill instance."""
         return await skill.execute(**kwargs)
