@@ -407,3 +407,106 @@ async def test_execute_tool_calls_respects_concurrency_limit(
     assert results[1].result == 50
     assert results[2].result == 42
     assert results[3].result == 64
+
+
+@pytest.mark.asyncio
+async def test_successful_tool_execution_includes_metadata() -> None:
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    executor = ToolExecutor(manager)
+    engine = ToolCallingEngine(executor)
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="1",
+                name="calculator",
+                arguments={"expression": "2+3"},
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 1
+    assert results[0].result == 5
+    assert results[0].metadata is not None
+    assert results[0].metadata.status == "success"
+    assert results[0].metadata.duration_ms >= 0
+    assert results[0].metadata.error is None
+
+
+@pytest.mark.asyncio
+async def test_timeout_includes_timeout_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "doitall.services.tool_calling_engine.settings.TOOL_EXECUTION_TIMEOUT_SECONDS",
+        0.01,
+    )
+
+    class SlowExecutor:
+        async def execute(
+            self,
+            name: str,
+            arguments: dict[str, object],
+        ) -> object:
+            await asyncio.sleep(1)
+            return "done"
+
+    engine = ToolCallingEngine(SlowExecutor())  # type: ignore[arg-type]
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="timeout-1",
+                name="slow",
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 1
+    assert results[0].metadata is not None
+    assert results[0].metadata.status == "timeout"
+    assert results[0].metadata.duration_ms >= 0
+    assert results[0].metadata.error == "timeout"
+
+
+@pytest.mark.asyncio
+async def test_failed_tool_execution_includes_error_metadata() -> None:
+    class FailingExecutor:
+        async def execute(
+            self,
+            name: str,
+            arguments: dict[str, object],
+        ) -> object:
+            raise RuntimeError("boom")
+
+    engine = ToolCallingEngine(FailingExecutor())  # type: ignore[arg-type]
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="error-1",
+                name="failing_tool",
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 1
+    assert results[0].metadata is not None
+    assert results[0].metadata.status == "error"
+    assert results[0].metadata.duration_ms >= 0
+    assert results[0].metadata.error == "boom"

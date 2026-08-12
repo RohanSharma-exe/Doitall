@@ -1,12 +1,17 @@
 """Tool calling execution engine."""
 
 import asyncio
+import time
 
 from loguru import logger
 
 from doitall.config.settings import settings
 from doitall.models.provider_response import ProviderResponse
-from doitall.models.tool_call import ToolCall, ToolResult
+from doitall.models.tool_call import (
+    ToolCall,
+    ToolExecutionMetadata,
+    ToolResult,
+)
 from doitall.services.tool_executor import ToolExecutor
 
 
@@ -62,6 +67,8 @@ class ToolCallingEngine:
         call: ToolCall,
     ) -> ToolResult:
         """Execute one tool call with timeout and failure isolation."""
+        start = time.perf_counter()
+
         try:
             value = await asyncio.wait_for(
                 self._executor.execute(
@@ -71,13 +78,21 @@ class ToolCallingEngine:
                 timeout=settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
             )
 
+            duration_ms = (time.perf_counter() - start) * 1000
+
             return ToolResult(
                 tool_call_id=call.id,
                 name=call.name,
                 result=value,
+                metadata=ToolExecutionMetadata(
+                    status="success",
+                    duration_ms=duration_ms,
+                ),
             )
 
         except TimeoutError:
+            duration_ms = (time.perf_counter() - start) * 1000
+
             logger.warning(
                 "Tool execution timed out name={} tool_call_id={} timeout={}s",
                 call.name,
@@ -92,9 +107,16 @@ class ToolCallingEngine:
                     "Tool execution timed out after "
                     f"{settings.TOOL_EXECUTION_TIMEOUT_SECONDS} seconds."
                 ),
+                metadata=ToolExecutionMetadata(
+                    status="timeout",
+                    duration_ms=duration_ms,
+                    error="timeout",
+                ),
             )
 
         except Exception as exc:
+            duration_ms = (time.perf_counter() - start) * 1000
+
             logger.warning(
                 "Tool execution failed name={} tool_call_id={} error={}",
                 call.name,
@@ -106,4 +128,9 @@ class ToolCallingEngine:
                 tool_call_id=call.id,
                 name=call.name,
                 result=f"Tool execution failed: {exc}",
+                metadata=ToolExecutionMetadata(
+                    status="error",
+                    duration_ms=duration_ms,
+                    error=str(exc),
+                ),
             )

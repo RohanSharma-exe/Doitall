@@ -1,6 +1,6 @@
 """Tool execution invocation and result models."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +17,16 @@ class ToolCall(BaseModel):
     )
 
 
+class ToolExecutionMetadata(BaseModel):
+    """Internal metadata describing one tool execution."""
+
+    status: Literal["success", "timeout", "error"]
+
+    duration_ms: float
+
+    error: str | None = None
+
+
 class ToolResult(BaseModel):
     """Result returned from executing a tool."""
 
@@ -25,3 +35,5 @@ class ToolResult(BaseModel):
     name: str
 
     result: Any
+
+    metadata: ToolExecutionMetadata | None = None
