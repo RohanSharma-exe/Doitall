@@ -177,3 +177,100 @@ async def test_unknown_argument_raises_skill_error() -> None:
             expression="2+3",
             unexpected="value",
         )
+
+
+class FilesystemCapabilitySkill(BaseSkill):
+    name = "filesystem_capability"
+    capabilities = ("filesystem",)
+
+    async def execute(self, **kwargs):
+        return "executed"
+
+
+@pytest.mark.asyncio
+async def test_skill_capability_is_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Allow a skill when all required capabilities are configured."""
+
+    from doitall.config.settings import settings
+
+    monkeypatch.setattr(
+        settings,
+        "SKILL_ALLOWED_CAPABILITIES",
+        ["filesystem"],
+    )
+
+    registry = SkillRegistry()
+    registry.register(FilesystemCapabilitySkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    result = await manager.execute("filesystem_capability")
+
+    assert result == "executed"
+
+
+@pytest.mark.asyncio
+async def test_skill_capability_is_denied(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject a skill when a required capability is not allowed."""
+
+    from doitall.config.settings import settings
+
+    monkeypatch.setattr(
+        settings,
+        "SKILL_ALLOWED_CAPABILITIES",
+        ["network"],
+    )
+
+    registry = SkillRegistry()
+    registry.register(FilesystemCapabilitySkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    with pytest.raises(
+        SkillError,
+        match="requires capabilities that are not allowed",
+    ):
+        await manager.execute("filesystem_capability")
+
+
+@pytest.mark.asyncio
+async def test_empty_capability_allow_list_allows_skill(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty capability allow-list disables capability restrictions."""
+
+    from doitall.config.settings import settings
+
+    monkeypatch.setattr(
+        settings,
+        "SKILL_ALLOWED_CAPABILITIES",
+        [],
+    )
+
+    registry = SkillRegistry()
+    registry.register(FilesystemCapabilitySkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    result = await manager.execute("filesystem_capability")
+
+    assert result == "executed"

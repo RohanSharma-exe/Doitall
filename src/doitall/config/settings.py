@@ -92,6 +92,13 @@ class Settings(BaseSettings):
     # ----------------------------
     ENABLE_FILESYSTEM_WRITE_TOOLS: bool = False
 
+    # Skill capabilities allowed by the application.
+    #
+    # An empty list means no capability restriction is applied.
+    # Add capabilities here to explicitly restrict which privileged
+    # skills may execute.
+    SKILL_ALLOWED_CAPABILITIES: list[str] = Field(default_factory=list)
+
     # ----------------------------
     # Memory
     # ----------------------------

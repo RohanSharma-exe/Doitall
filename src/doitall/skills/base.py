@@ -14,6 +14,13 @@ class BaseSkill(ABC):
     version: str = "1.0.0"
     enabled: bool = True
 
+    # Capabilities required by this skill.
+    #
+    # An empty tuple means the skill requires no special capability.
+    # Concrete skills should declare capabilities when they access
+    # sensitive resources such as the filesystem, network, or processes.
+    capabilities: tuple[str, ...] = ()
+
     @abstractmethod
     async def execute(
         self,

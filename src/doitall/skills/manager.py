@@ -6,6 +6,7 @@ from typing import Any
 from jsonschema import ValidationError as JSONSchemaValidationError
 from jsonschema import validate
 
+from doitall.config.settings import settings
 from doitall.core.exceptions import SkillError
 from doitall.services.container import ServiceContainer
 from doitall.skills.base import BaseSkill
@@ -33,6 +34,7 @@ class SkillManager:
         skill = self._create_skill(name)
 
         self._validate(skill)
+        self._validate_capabilities(skill)
         self._validate_arguments(skill, kwargs)
 
         return await self._execute(
@@ -82,6 +84,31 @@ class SkillManager:
         if not skill.enabled:
             raise ValueError(
                 f"Skill '{skill.name}' is disabled.",
+            )
+
+    def _validate_capabilities(
+        self,
+        skill: BaseSkill,
+    ) -> None:
+        """Validate that the skill's required capabilities are allowed."""
+
+        required = set(skill.capabilities)
+
+        if not required:
+            return
+
+        allowed = set(settings.SKILL_ALLOWED_CAPABILITIES)
+
+        # An empty allow-list means capability restrictions are disabled.
+        if not allowed:
+            return
+
+        denied = required - allowed
+
+        if denied:
+            raise SkillError(
+                f"Skill '{skill.name}' requires capabilities that are not allowed: "
+                f"{sorted(denied)}"
             )
 
     def _validate_arguments(

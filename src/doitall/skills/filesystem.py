@@ -19,7 +19,10 @@ class FilesystemSkill(BaseSkill):
     """Safe filesystem operations."""
 
     name = "filesystem"
+
     description = "Read, write, list, delete and inspect files."
+
+    capabilities = ("filesystem",)
 
     @classmethod
     def definition(cls) -> ToolDefinition:
