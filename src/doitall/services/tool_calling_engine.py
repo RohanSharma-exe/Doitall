@@ -24,19 +24,38 @@ class ToolCallingEngine:
         self,
         response: ProviderResponse,
     ) -> list[ToolResult]:
-        """Execute all requested tool calls concurrently.
+        """Execute tool calls concurrently with a configurable concurrency limit.
 
         A failure or timeout in one tool call does not prevent remaining
         tool calls from executing. Failed calls are converted into
         ToolResult objects so the agent can report the failure back
         to the LLM.
         """
-        tasks = [self._execute_single(call) for call in response.tool_calls]
-
-        if not tasks:
+        if not response.tool_calls:
             return []
 
-        return list(await asyncio.gather(*tasks))
+        semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_TOOL_CALLS)
+
+        return list(
+            await asyncio.gather(
+                *(
+                    self._execute_with_limit(
+                        call,
+                        semaphore,
+                    )
+                    for call in response.tool_calls
+                )
+            )
+        )
+
+    async def _execute_with_limit(
+        self,
+        call: ToolCall,
+        semaphore: asyncio.Semaphore,
+    ) -> ToolResult:
+        """Execute one tool call while respecting the concurrency limit."""
+        async with semaphore:
+            return await self._execute_single(call)
 
     async def _execute_single(
         self,

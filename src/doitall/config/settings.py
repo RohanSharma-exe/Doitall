@@ -142,6 +142,9 @@ class Settings(BaseSettings):
     TOOL_EXECUTION_TIMEOUT_SECONDS: int = 30
     """Seconds before an individual tool execution is aborted."""
 
+    MAX_CONCURRENT_TOOL_CALLS: int = 5
+    """Maximum number of tool calls that may execute concurrently."""
+
     # ----------------------------
     # Paths
     # ----------------------------

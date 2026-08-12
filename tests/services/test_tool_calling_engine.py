@@ -323,3 +323,87 @@ async def test_execute_tool_calls_concurrently(
 
     assert results[2].tool_call_id == "3"
     assert results[2].result == 42
+
+
+@pytest.mark.asyncio
+async def test_execute_tool_calls_respects_concurrency_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    executor = ToolExecutor(manager)
+    engine = ToolCallingEngine(executor)
+
+    monkeypatch.setattr(
+        "doitall.services.tool_calling_engine.settings.MAX_CONCURRENT_TOOL_CALLS",
+        2,
+    )
+
+    active_calls = 0
+    max_active_calls = 0
+
+    original_execute = executor.execute
+
+    async def tracked_execute(
+        name: str,
+        arguments: dict[str, object],
+    ) -> object:
+        nonlocal active_calls, max_active_calls
+
+        active_calls += 1
+        max_active_calls = max(max_active_calls, active_calls)
+
+        try:
+            await asyncio.sleep(0.05)
+            return await original_execute(name, arguments)
+        finally:
+            active_calls -= 1
+
+    monkeypatch.setattr(
+        executor,
+        "execute",
+        tracked_execute,
+    )
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="1",
+                name="calculator",
+                arguments={"expression": "2+3"},
+            ),
+            ToolCall(
+                id="2",
+                name="calculator",
+                arguments={"expression": "10*5"},
+            ),
+            ToolCall(
+                id="3",
+                name="calculator",
+                arguments={"expression": "7*6"},
+            ),
+            ToolCall(
+                id="4",
+                name="calculator",
+                arguments={"expression": "8*8"},
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 4
+    assert max_active_calls == 2
+
+    assert results[0].result == 5
+    assert results[1].result == 50
+    assert results[2].result == 42
+    assert results[3].result == 64
