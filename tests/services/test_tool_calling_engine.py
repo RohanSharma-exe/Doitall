@@ -511,3 +511,48 @@ async def test_failed_tool_execution_includes_error_metadata() -> None:
     assert results[0].metadata.status == "error"
     assert results[0].metadata.duration_ms >= 0
     assert results[0].metadata.error == "boom"
+
+
+@pytest.mark.asyncio
+async def test_request_cancellation_propagates() -> None:
+    started = asyncio.Event()
+    cancelled = asyncio.Event()
+
+    class SlowExecutor:
+        async def execute(
+            self,
+            name: str,
+            arguments: dict[str, object],
+        ) -> object:
+            started.set()
+
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                cancelled.set()
+                raise
+
+            return "should not complete"
+
+    engine = ToolCallingEngine(SlowExecutor())  # type: ignore[arg-type]
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="cancel-1",
+                name="slow",
+                arguments={},
+            ),
+        ],
+    )
+
+    task = asyncio.create_task(engine.execute(response))
+
+    await asyncio.wait_for(started.wait(), timeout=1)
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert cancelled.is_set()
