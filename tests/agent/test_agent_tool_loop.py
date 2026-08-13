@@ -364,3 +364,33 @@ async def test_agent_feeds_tool_failure_back_to_runtime() -> None:
     assert tool.tool_call_id == "failed-call"
     assert tool.name == "calculator"
     assert tool.content == "Tool execution failed: invalid expression"
+
+
+@pytest.mark.asyncio
+async def test_agent_does_not_feed_non_tool_messages_to_engine() -> None:
+    class NonToolRuntime:
+        async def execute(self, context: RuntimeContext) -> ProviderResponse:
+            return ProviderResponse(
+                content="I have the answer."
+            )
+
+    class NonToolEngine:
+        async def execute(
+            self,
+            response: ProviderResponse,
+        ) -> list[ToolResult]:
+            raise RuntimeError("Should not be called!")
+
+    executor = AgentExecutor(
+        NonToolRuntime(),
+        NonToolEngine(),
+        ToolMessageBuilder(),
+    )
+
+    context = RuntimeContext()
+
+    response = await executor.execute(context)
+
+    assert response.content == "I have the answer."
+
+    assert context.messages == []
