@@ -1,6 +1,7 @@
 import pytest
 
 from doitall.agent.executor import AgentExecutor
+from doitall.config.settings import settings
 from doitall.models.message import AssistantMessage, ToolMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall, ToolResult
@@ -79,7 +80,12 @@ async def test_agent_executes_tool_loop():
 
 
 @pytest.mark.asyncio
-async def test_agent_stops_after_max_tool_iterations() -> None:
+async def test_agent_stops_after_max_tool_iterations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test agent stops after MAX_TOOL_ITERATIONS is reached."""
+    monkeypatch.setattr(settings, "MAX_TOOL_ITERATIONS", 3)
+
     class InfiniteToolRuntime:
         def __init__(self) -> None:
             self.calls = 0
@@ -129,5 +135,5 @@ async def test_agent_stops_after_max_tool_iterations() -> None:
     response = await executor.execute(context)
 
     assert response.tool_calls
-    assert runtime.calls == AgentExecutor.MAX_TOOL_ITERATIONS + 1
-    assert tool_engine.calls == AgentExecutor.MAX_TOOL_ITERATIONS
+    assert runtime.calls == settings.MAX_TOOL_ITERATIONS + 1
+    assert tool_engine.calls == settings.MAX_TOOL_ITERATIONS

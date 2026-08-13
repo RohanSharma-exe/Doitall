@@ -5,6 +5,7 @@ from typing import Any
 
 from loguru import logger
 
+from doitall.config.settings import settings
 from doitall.models.message import AssistantMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.runtime.context import RuntimeContext
@@ -15,8 +16,6 @@ from doitall.services.tool_calling_engine import ToolCallingEngine
 
 class AgentExecutor:
     """Coordinates runtime execution and iterative tool calling until completion."""
-
-    MAX_TOOL_ITERATIONS = 10
 
     def __init__(
         self,
@@ -44,7 +43,7 @@ class AgentExecutor:
         """Execute request against provider and recursively resolve requested tool calls up to MAX_TOOL_ITERATIONS."""
         response = await self._runtime.execute(context)
 
-        for _iteration in range(self.MAX_TOOL_ITERATIONS):
+        for _iteration in range(settings.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
                 return response
 
@@ -64,7 +63,7 @@ class AgentExecutor:
         # Max iterations reached — return the last response rather than crashing.
         # Log a warning so the operator knows this happened.
         logger.warning(
-            f"AgentExecutor reached MAX_TOOL_ITERATIONS={self.MAX_TOOL_ITERATIONS}. "
+            f"AgentExecutor reached MAX_TOOL_ITERATIONS={settings.MAX_TOOL_ITERATIONS}. "
             "Returning last partial response."
         )
         return response

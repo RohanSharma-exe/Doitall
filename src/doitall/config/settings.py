@@ -145,6 +145,9 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_TOOL_CALLS: int = 5
     """Maximum number of tool calls that may execute concurrently."""
 
+    MAX_TOOL_ITERATIONS: int = 10
+    """Maximum number of tool-calling iterations allowed for a single agent request."""
+
     # ----------------------------
     # Paths
     # ----------------------------
