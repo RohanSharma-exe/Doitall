@@ -151,6 +151,9 @@ class Settings(BaseSettings):
     MAX_TOOL_CALLS_PER_REQUEST: int = 50
     """Maximum number of tool calls allowed during a single agent request."""
 
+    MAX_IDENTICAL_TOOL_CALLS: int = 3
+    """Maximum number of identical tool calls allowed during a single agent request."""
+
     # ----------------------------
     # Paths
     # ----------------------------

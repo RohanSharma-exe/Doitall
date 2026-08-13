@@ -208,3 +208,89 @@ async def test_agent_stops_when_tool_call_budget_is_exceeded(
     assert runtime.calls == 1
     assert tool_engine.calls == 0
     assert context.messages == []
+
+
+@pytest.mark.asyncio
+async def test_agent_stops_after_repeated_identical_tool_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test agent stops when the same tool call is repeatedly requested."""
+    monkeypatch.setattr(settings, "MAX_IDENTICAL_TOOL_CALLS", 2)
+
+    class RepeatingToolRuntime:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, context: RuntimeContext) -> ProviderResponse:
+            self.calls += 1
+
+            return ProviderResponse(
+                tool_calls=[
+                    ToolCall(
+                        id=f"call-{self.calls}",
+                        name="calculator",
+                        arguments={"expression": "2+2"},
+                    )
+                ]
+            )
+
+    class CountingToolEngine:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(
+            self,
+            response: ProviderResponse,
+        ) -> list[ToolResult]:
+            self.calls += 1
+
+            return [
+                ToolResult(
+                    tool_call_id=response.tool_calls[0].id,
+                    name=response.tool_calls[0].name,
+                    result=4,
+                )
+            ]
+
+    runtime = RepeatingToolRuntime()
+    tool_engine = CountingToolEngine()
+
+    executor = AgentExecutor(
+        runtime,
+        tool_engine,
+        ToolMessageBuilder(),
+    )
+
+    context = RuntimeContext()
+
+    response = await executor.execute(context)
+
+    assert response.tool_calls
+    assert runtime.calls == 3
+    assert tool_engine.calls == 2
+
+
+def test_tool_call_signature_is_stable_for_argument_order() -> None:
+    executor = AgentExecutor(
+        runtime=None,  # type: ignore[arg-type]
+        tool_engine=None,  # type: ignore[arg-type]
+        tool_message_builder=None,  # type: ignore[arg-type]
+    )
+
+    first = ToolCall(
+        name="calculator",
+        arguments={
+            "expression": "2+2",
+            "precision": 2,
+        },
+    )
+
+    second = ToolCall(
+        name="calculator",
+        arguments={
+            "precision": 2,
+            "expression": "2+2",
+        },
+    )
+
+    assert executor._tool_call_signature(first) == executor._tool_call_signature(second)

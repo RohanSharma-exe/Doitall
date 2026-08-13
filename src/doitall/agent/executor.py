@@ -1,5 +1,6 @@
 """Agent execution coordinator managing iterative tool-calling loops."""
 
+import json
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -8,6 +9,7 @@ from loguru import logger
 from doitall.config.settings import settings
 from doitall.models.message import AssistantMessage
 from doitall.models.provider_response import ProviderResponse
+from doitall.models.tool_call import ToolCall
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.executor import RuntimeExecutor
 from doitall.runtime.tool_message_builder import ToolMessageBuilder
@@ -36,6 +38,21 @@ class AgentExecutor:
         async for chunk in self._runtime.stream(context):
             yield chunk
 
+    def _tool_call_signature(
+        self,
+        call: ToolCall,
+    ) -> str:
+        """Return a stable signature for a tool call."""
+        return json.dumps(
+            {
+                "name": call.name,
+                "arguments": call.arguments,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+
     async def execute(
         self,
         context: RuntimeContext,
@@ -43,6 +60,7 @@ class AgentExecutor:
         """Execute request against provider and recursively resolve requested tool calls up to MAX_TOOL_ITERATIONS."""
         response = await self._runtime.execute(context)
         tool_call_count = 0
+        identical_tool_call_counts: dict[str, int] = {}
 
         for _iteration in range(settings.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
@@ -63,6 +81,22 @@ class AgentExecutor:
                 return response
 
             tool_call_count += requested_tool_calls
+
+            for call in response.tool_calls:
+                signature = self._tool_call_signature(call)
+                count = identical_tool_call_counts.get(signature, 0) + 1
+
+                if count > settings.MAX_IDENTICAL_TOOL_CALLS:
+                    logger.warning(
+                        "AgentExecutor detected repeated tool call name={} "
+                        "count={} limit={}. Returning last response.",
+                        call.name,
+                        count,
+                        settings.MAX_IDENTICAL_TOOL_CALLS,
+                    )
+                    return response
+
+                identical_tool_call_counts[signature] = count
 
             context.messages.append(
                 AssistantMessage(
