@@ -134,6 +134,58 @@ async def test_execute_tool_calls_continues_after_failure() -> None:
 
 
 @pytest.mark.asyncio
+async def test_invalid_tool_arguments_do_not_prevent_remaining_tools() -> None:
+    registry = SkillRegistry()
+    registry.register(CalculatorSkill)
+
+    container = ServiceContainer()
+
+    manager = SkillManager(
+        registry,
+        container,
+    )
+
+    executor = ToolExecutor(manager)
+    engine = ToolCallingEngine(executor)
+
+    response = ProviderResponse(
+        tool_calls=[
+            ToolCall(
+                id="invalid",
+                name="calculator",
+                arguments={
+                    "expression": 123,
+                },
+            ),
+            ToolCall(
+                id="valid",
+                name="calculator",
+                arguments={
+                    "expression": "10*5",
+                },
+            ),
+        ],
+    )
+
+    results = await engine.execute(response)
+
+    assert len(results) == 2
+
+    assert results[0].tool_call_id == "invalid"
+    assert results[0].name == "calculator"
+    assert isinstance(results[0].result, str)
+    assert results[0].result.startswith("Tool execution failed:")
+    assert results[0].metadata is not None
+    assert results[0].metadata.status == "error"
+
+    assert results[1].tool_call_id == "valid"
+    assert results[1].name == "calculator"
+    assert results[1].result == 50
+    assert results[1].metadata is not None
+    assert results[1].metadata.status == "success"
+
+
+@pytest.mark.asyncio
 async def test_execute_tool_call_times_out(monkeypatch: pytest.MonkeyPatch) -> None:
     registry = SkillRegistry()
     registry.register(CalculatorSkill)
