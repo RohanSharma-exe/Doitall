@@ -294,3 +294,73 @@ def test_tool_call_signature_is_stable_for_argument_order() -> None:
     )
 
     assert executor._tool_call_signature(first) == executor._tool_call_signature(second)
+
+
+@pytest.mark.asyncio
+async def test_agent_feeds_tool_failure_back_to_runtime() -> None:
+    class FailureRuntime:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.contexts: list[RuntimeContext] = []
+
+        async def execute(
+            self,
+            context: RuntimeContext,
+        ) -> ProviderResponse:
+            self.calls += 1
+            self.contexts.append(context)
+
+            if self.calls == 1:
+                return ProviderResponse(
+                    tool_calls=[
+                        ToolCall(
+                            id="failed-call",
+                            name="calculator",
+                            arguments={"expression": "invalid"},
+                        )
+                    ]
+                )
+
+            return ProviderResponse(content="I couldn't execute that calculation.")
+
+    class FailureToolEngine:
+        async def execute(
+            self,
+            response: ProviderResponse,
+        ) -> list[ToolResult]:
+            return [
+                ToolResult(
+                    tool_call_id="failed-call",
+                    name="calculator",
+                    result="Tool execution failed: invalid expression",
+                )
+            ]
+
+    runtime = FailureRuntime()
+
+    executor = AgentExecutor(
+        runtime,
+        FailureToolEngine(),
+        ToolMessageBuilder(),
+    )
+
+    context = RuntimeContext()
+
+    response = await executor.execute(context)
+
+    assert response.content == "I couldn't execute that calculation."
+    assert runtime.calls == 2
+
+    assert len(context.messages) == 2
+
+    assistant = context.messages[0]
+    tool = context.messages[1]
+
+    assert isinstance(assistant, AssistantMessage)
+    assert len(assistant.tool_calls) == 1
+    assert assistant.tool_calls[0].id == "failed-call"
+
+    assert isinstance(tool, ToolMessage)
+    assert tool.tool_call_id == "failed-call"
+    assert tool.name == "calculator"
+    assert tool.content == "Tool execution failed: invalid expression"
