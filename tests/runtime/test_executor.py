@@ -4,7 +4,8 @@ import pytest
 
 from doitall.agent.agent import Agent
 from doitall.agent.manager import AgentManager
-from doitall.models.message import UserMessage
+from doitall.models.message import ToolMessage, UserMessage
+from doitall.models.tool_call import ToolExecutionMetadata
 from doitall.providers.manager import ProviderCandidate, ProviderManager
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.executor import RuntimeExecutor
@@ -200,3 +201,31 @@ async def test_execute_prefers_provider_override_then_fallback():
     assert response == "DEFAULT"
     override_provider.chat.assert_called_once()
     default_provider.chat.assert_called_once()
+
+
+def test_payload_does_not_expose_tool_execution_metadata() -> None:
+    executor, _ = create_executor()
+
+    metadata = ToolExecutionMetadata(
+        status="success",
+        duration_ms=12.5,
+    )
+
+    messages = [
+        ToolMessage(
+            content="42",
+            tool_call_id="call-1",
+            name="calculator",
+            execution_metadata=metadata,
+        ),
+    ]
+
+    payload = executor._payload(messages)
+
+    assert len(payload) == 1
+    assert payload[0]["role"] == "tool"
+    assert payload[0]["content"] == "42"
+    assert payload[0]["tool_call_id"] == "call-1"
+    assert payload[0]["name"] == "calculator"
+
+    assert "execution_metadata" not in payload[0]

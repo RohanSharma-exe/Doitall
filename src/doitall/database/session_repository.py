@@ -1,5 +1,6 @@
 """SessionRepository — thin data-access layer for sessions and messages."""
 
+import json
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import UTC, datetime
@@ -142,6 +143,7 @@ class SessionRepository:
         tool_calls: list[dict] | None = None,
         tool_call_id: str | None = None,
         name: str | None = None,
+        execution_metadata: dict | None = None,
     ) -> MessageRecord:
         """Append a message row and return the persisted record."""
         with self._get_session() as db:
@@ -152,6 +154,9 @@ class SessionRepository:
                 tool_call_id=tool_call_id,
                 name=name,
             )
+
+            if execution_metadata is not None:
+                msg.execution_metadata_json = json.dumps(execution_metadata)
             if tool_calls:
                 msg.set_tool_calls(tool_calls)
             db.add(msg)

@@ -25,6 +25,7 @@ class ToolMessageBuilder:
                     tool_call_id=result.tool_call_id,
                     name=result.name,
                     content=str(result.result),
+                    execution_metadata=result.metadata,
                 )
             )
 

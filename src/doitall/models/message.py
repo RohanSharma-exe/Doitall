@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from doitall.models.tool_call import ToolCall
+from doitall.models.tool_call import ToolCall, ToolExecutionMetadata
 
 
 class MessageRole(StrEnum):
@@ -52,3 +52,4 @@ class ToolMessage(Message):
 
     tool_call_id: str
     name: str
+    execution_metadata: ToolExecutionMetadata | None = None

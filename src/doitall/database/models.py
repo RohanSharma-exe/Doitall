@@ -55,6 +55,12 @@ class MessageRecord(SQLModel, table=True):
     # ToolMessage extra fields.
     tool_call_id: str | None = Field(default=None)
     name: str | None = Field(default=None)
+    
+    # ToolMessage execution metadata.
+    execution_metadata_json: str | None = Field(
+        default=None,
+        sa_column=Column(Text),
+    )
 
     created_at: datetime = Field(default_factory=_now)
 

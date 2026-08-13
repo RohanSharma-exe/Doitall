@@ -9,6 +9,7 @@ Two modes:
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from doitall.config.settings import settings
@@ -39,10 +40,20 @@ def _record_to_message(record) -> Message:  # type: ignore[no-untyped-def]
     if role == MessageRole.SYSTEM:
         return SystemMessage(content=record.content)
     if role == MessageRole.TOOL:
+        from doitall.models.tool_call import ToolExecutionMetadata
+
+        metadata = None
+
+        if record.execution_metadata_json:
+            metadata = ToolExecutionMetadata.model_validate(
+                json.loads(record.execution_metadata_json)
+            )
+
         return ToolMessage(
             content=record.content,
             tool_call_id=record.tool_call_id or "",
             name=record.name or "",
+            execution_metadata=metadata,
         )
     # Fallback: return as generic Message
     return Message(role=role, content=record.content)
@@ -84,12 +95,15 @@ class ConversationService:
         tool_calls: list[dict] | None = None
         tool_call_id: str | None = None
         name: str | None = None
+        execution_metadata: dict | None = None
 
         if isinstance(message, AssistantMessage) and message.tool_calls:
             tool_calls = [tc.model_dump() for tc in message.tool_calls]
         if isinstance(message, ToolMessage):
             tool_call_id = message.tool_call_id
             name = message.name
+            if message.execution_metadata is not None:
+                execution_metadata = message.execution_metadata.model_dump()
 
         self._repository.append_message(
             session_id=self._session_id,
@@ -98,6 +112,7 @@ class ConversationService:
             tool_calls=tool_calls,
             tool_call_id=tool_call_id,
             name=name,
+            execution_metadata=execution_metadata,
         )
 
     # ------------------------------------------------------------------
