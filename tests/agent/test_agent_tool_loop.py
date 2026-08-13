@@ -137,3 +137,74 @@ async def test_agent_stops_after_max_tool_iterations(
     assert response.tool_calls
     assert runtime.calls == settings.MAX_TOOL_ITERATIONS + 1
     assert tool_engine.calls == settings.MAX_TOOL_ITERATIONS
+
+
+@pytest.mark.asyncio
+async def test_agent_stops_when_tool_call_budget_is_exceeded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test agent refuses to execute tools beyond the request budget."""
+    monkeypatch.setattr(settings, "MAX_TOOL_CALLS_PER_REQUEST", 2)
+
+    class BudgetRuntime:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, context: RuntimeContext) -> ProviderResponse:
+            self.calls += 1
+
+            return ProviderResponse(
+                tool_calls=[
+                    ToolCall(
+                        id=f"call-{self.calls}-1",
+                        name="calculator",
+                        arguments={"expression": "1+1"},
+                    ),
+                    ToolCall(
+                        id=f"call-{self.calls}-2",
+                        name="calculator",
+                        arguments={"expression": "2+2"},
+                    ),
+                    ToolCall(
+                        id=f"call-{self.calls}-3",
+                        name="calculator",
+                        arguments={"expression": "3+3"},
+                    ),
+                ]
+            )
+
+    class CountingToolEngine:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(
+            self,
+            response: ProviderResponse,
+        ) -> list[ToolResult]:
+            self.calls += 1
+            return [
+                ToolResult(
+                    tool_call_id=call.id,
+                    name=call.name,
+                    result=2,
+                )
+                for call in response.tool_calls
+            ]
+
+    runtime = BudgetRuntime()
+    tool_engine = CountingToolEngine()
+
+    executor = AgentExecutor(
+        runtime,
+        tool_engine,
+        ToolMessageBuilder(),
+    )
+
+    context = RuntimeContext()
+
+    response = await executor.execute(context)
+
+    assert response.tool_calls
+    assert runtime.calls == 1
+    assert tool_engine.calls == 0
+    assert context.messages == []

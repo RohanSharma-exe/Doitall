@@ -148,6 +148,9 @@ class Settings(BaseSettings):
     MAX_TOOL_ITERATIONS: int = 10
     """Maximum number of tool-calling iterations allowed for a single agent request."""
 
+    MAX_TOOL_CALLS_PER_REQUEST: int = 50
+    """Maximum number of tool calls allowed during a single agent request."""
+
     # ----------------------------
     # Paths
     # ----------------------------

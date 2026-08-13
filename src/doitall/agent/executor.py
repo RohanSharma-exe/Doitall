@@ -42,10 +42,27 @@ class AgentExecutor:
     ) -> ProviderResponse:
         """Execute request against provider and recursively resolve requested tool calls up to MAX_TOOL_ITERATIONS."""
         response = await self._runtime.execute(context)
+        tool_call_count = 0
 
         for _iteration in range(settings.MAX_TOOL_ITERATIONS):
             if not response.tool_calls:
                 return response
+
+            requested_tool_calls = len(response.tool_calls)
+
+            if (
+                tool_call_count + requested_tool_calls
+                > settings.MAX_TOOL_CALLS_PER_REQUEST
+            ):
+                logger.warning(
+                    "AgentExecutor reached MAX_TOOL_CALLS_PER_REQUEST={} "
+                    "with requested_tool_calls={}. Returning last response.",
+                    settings.MAX_TOOL_CALLS_PER_REQUEST,
+                    requested_tool_calls,
+                )
+                return response
+
+            tool_call_count += requested_tool_calls
 
             context.messages.append(
                 AssistantMessage(
