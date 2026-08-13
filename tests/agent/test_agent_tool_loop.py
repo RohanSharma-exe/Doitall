@@ -76,3 +76,58 @@ async def test_agent_executes_tool_loop():
     assert tool.tool_call_id == assistant.tool_calls[0].id
 
     assert response.content == "450"
+
+
+@pytest.mark.asyncio
+async def test_agent_stops_after_max_tool_iterations() -> None:
+    class InfiniteToolRuntime:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(self, context: RuntimeContext) -> ProviderResponse:
+            self.calls += 1
+
+            return ProviderResponse(
+                tool_calls=[
+                    ToolCall(
+                        id=f"call-{self.calls}",
+                        name="calculator",
+                        arguments={"expression": "1+1"},
+                    )
+                ]
+            )
+
+    class CountingToolEngine:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def execute(
+            self,
+            response: ProviderResponse,
+        ) -> list[ToolResult]:
+            self.calls += 1
+
+            return [
+                ToolResult(
+                    tool_call_id=response.tool_calls[0].id,
+                    name="calculator",
+                    result=2,
+                )
+            ]
+
+    runtime = InfiniteToolRuntime()
+    tool_engine = CountingToolEngine()
+
+    executor = AgentExecutor(
+        runtime,
+        tool_engine,
+        ToolMessageBuilder(),
+    )
+
+    context = RuntimeContext()
+
+    response = await executor.execute(context)
+
+    assert response.tool_calls
+    assert runtime.calls == AgentExecutor.MAX_TOOL_ITERATIONS + 1
+    assert tool_engine.calls == AgentExecutor.MAX_TOOL_ITERATIONS
