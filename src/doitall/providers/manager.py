@@ -68,16 +68,24 @@ class ProviderManager:
     def fallback_candidates(
         self, preferred: str | None = None
     ) -> list[ProviderCandidate]:
-        """Return providers ordered for failover: preferred/default first, then others."""
+        """Return candidates for the requested provider policy.
 
-        ordered_names: list[str] = []
-        first = preferred or self._default
-        if first and first in self._providers:
-            ordered_names.append(first)
+        An explicit preference pins execution to that provider. Requests without
+        a preference start with the default and may fail over to other providers.
+        """
+        ordered_names: list[str]
+        if preferred is not None:
+            if preferred not in self._providers:
+                raise KeyError(preferred)
+            ordered_names = [preferred]
+        else:
+            ordered_names = []
+            if self._default is not None:
+                ordered_names.append(self._default)
 
-        for name in self.names():
-            if name not in ordered_names:
-                ordered_names.append(name)
+            for name in self.names():
+                if name not in ordered_names:
+                    ordered_names.append(name)
 
         return [
             ProviderCandidate(

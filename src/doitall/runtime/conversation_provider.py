@@ -1,5 +1,7 @@
 """Conversation history context provider module."""
 
+import asyncio
+
 from doitall.runtime.context import RuntimeContext
 from doitall.services.conversation_service import ConversationService
 
@@ -19,4 +21,4 @@ class ConversationProvider:
         context: RuntimeContext,
     ) -> None:
         """Retrieve conversation messages and assign to context."""
-        context.messages = self._conversation.context_messages()
+        context.messages = await asyncio.to_thread(self._conversation.context_messages)

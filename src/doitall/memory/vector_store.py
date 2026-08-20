@@ -14,6 +14,14 @@ class VectorStore(ABC):
     ) -> None:
         pass
 
+    async def upsert_many(
+        self,
+        points: list[tuple[str, list[float], dict[str, Any]]],
+    ) -> None:
+        """Upsert multiple points, with a sequential fallback for simple stores."""
+        for point_id, vector, payload in points:
+            await self.upsert(point_id=point_id, vector=vector, payload=payload)
+
     @abstractmethod
     async def search(
         self,

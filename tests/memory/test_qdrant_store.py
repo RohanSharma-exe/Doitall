@@ -1,10 +1,10 @@
-from qdrant_client import QdrantClient
+from qdrant_client import AsyncQdrantClient
 
 from doitall.memory.qdrant_store import QdrantStore
 
 
 def test_qdrant_store_creation():
-    client = QdrantClient(":memory:")
+    client = AsyncQdrantClient(":memory:")
 
     store = QdrantStore(
         client=client,

@@ -4,8 +4,10 @@ import json
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlmodel import Session, select
+from sqlalchemy import func
+from sqlmodel import Session, col, select
 
 from doitall.database.models import MessageRecord, SessionRecord
 from doitall.database.session import get_session as _default_get_session
@@ -108,12 +110,26 @@ class SessionRepository:
             db.commit()
             return True
 
-    def list_sessions(self) -> list[SessionRecord]:
-        """Return all sessions ordered by last_accessed_at desc."""
+    def get(self, session_id: str) -> SessionRecord | None:
+        """Return one session by ID without scanning the session table."""
+        with self._get_session() as db:
+            return db.get(SessionRecord, session_id)
+
+    def list_sessions(
+        self,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[SessionRecord]:
+        """Return sessions ordered by last access, optionally paginated."""
         with self._get_session() as db:
             stmt = select(SessionRecord).order_by(
-                SessionRecord.last_accessed_at.desc()  # type: ignore[attr-defined]
+                col(SessionRecord.last_accessed_at).desc()
             )
+            if offset:
+                stmt = stmt.offset(offset)
+            if limit is not None:
+                stmt = stmt.limit(limit)
             return list(db.exec(stmt).all())
 
     def exists(self, session_id: str) -> bool:
@@ -125,14 +141,24 @@ class SessionRepository:
     # Message operations
     # ------------------------------------------------------------------
 
-    def get_messages(self, session_id: str) -> list[MessageRecord]:
-        """Return all messages for a session ordered by creation time."""
+    def get_messages(
+        self,
+        session_id: str,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[MessageRecord]:
+        """Return messages in creation order, optionally paginated."""
         with self._get_session() as db:
             stmt = (
                 select(MessageRecord)
                 .where(MessageRecord.session_id == session_id)
-                .order_by(MessageRecord.created_at)  # type: ignore[arg-type]
+                .order_by(col(MessageRecord.created_at))
             )
+            if offset:
+                stmt = stmt.offset(offset)
+            if limit is not None:
+                stmt = stmt.limit(limit)
             return list(db.exec(stmt).all())
 
     def append_message(
@@ -140,10 +166,10 @@ class SessionRepository:
         session_id: str,
         role: str,
         content: str,
-        tool_calls: list[dict] | None = None,
+        tool_calls: list[dict[str, Any]] | None = None,
         tool_call_id: str | None = None,
         name: str | None = None,
-        execution_metadata: dict | None = None,
+        execution_metadata: dict[str, Any] | None = None,
     ) -> MessageRecord:
         """Append a message row and return the persisted record."""
         with self._get_session() as db:
@@ -176,5 +202,23 @@ class SessionRepository:
             return count
 
     def message_count(self, session_id: str) -> int:
-        """Return the number of messages in a session."""
-        return len(self.get_messages(session_id))
+        """Return the number of messages without loading message rows."""
+        with self._get_session() as db:
+            statement = (
+                select(func.count())
+                .select_from(MessageRecord)
+                .where(MessageRecord.session_id == session_id)
+            )
+            return int(db.exec(statement).one())
+
+    def message_counts(self, session_ids: list[str]) -> dict[str, int]:
+        """Return message counts for multiple sessions in one grouped query."""
+        if not session_ids:
+            return {}
+        with self._get_session() as db:
+            statement = (
+                select(MessageRecord.session_id, func.count())
+                .where(col(MessageRecord.session_id).in_(session_ids))
+                .group_by(MessageRecord.session_id)
+            )
+            return {session_id: int(count) for session_id, count in db.exec(statement)}

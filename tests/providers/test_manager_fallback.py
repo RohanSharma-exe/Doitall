@@ -1,3 +1,5 @@
+import pytest
+
 from doitall.providers.manager import ProviderManager
 
 
@@ -18,12 +20,20 @@ def test_fallback_candidates_default_first_then_sorted_rest():
     assert candidates[0].is_default is True
 
 
-def test_fallback_candidates_preferred_first():
+def test_fallback_candidates_explicit_preference_is_pinned():
     manager = ProviderManager()
     manager.register(Provider("b"), default=True)
     manager.register(Provider("a"))
 
     candidates = manager.fallback_candidates("a")
 
-    assert [candidate.provider.name for candidate in candidates] == ["a", "b"]
-    assert candidates[1].is_default is True
+    assert [candidate.provider.name for candidate in candidates] == ["a"]
+    assert candidates[0].is_default is False
+
+
+def test_fallback_candidates_rejects_unknown_preference():
+    manager = ProviderManager()
+    manager.register(Provider("default"), default=True)
+
+    with pytest.raises(KeyError, match="unknown"):
+        manager.fallback_candidates("unknown")

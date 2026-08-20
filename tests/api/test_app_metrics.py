@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session as DBSession
@@ -40,6 +41,52 @@ def test_rate_limit_prunes_stale_buckets():
 
     assert "stale" not in app_mod._rate_buckets
     assert "active" in app_mod._rate_buckets
+
+
+def test_rate_limit_key_ignores_unverified_credential_values(monkeypatch):
+    monkeypatch.setattr(app_mod.settings, "API_KEY", "valid-secret")
+    first = SimpleNamespace(
+        headers={"x-api-key": "fake-one"},
+        client=SimpleNamespace(host="203.0.113.10"),
+    )
+    second = SimpleNamespace(
+        headers={"authorization": "Bearer fake-two"},
+        client=SimpleNamespace(host="203.0.113.10"),
+    )
+
+    assert app_mod._rate_limit_key(first) == "ip:203.0.113.10"
+    assert app_mod._rate_limit_key(second) == "ip:203.0.113.10"
+
+
+def test_rate_limit_key_never_contains_valid_secret(monkeypatch):
+    monkeypatch.setattr(app_mod.settings, "API_KEY", "valid-secret")
+    request = SimpleNamespace(
+        headers={"x-api-key": "valid-secret"},
+        client=SimpleNamespace(host="203.0.113.10"),
+    )
+
+    key = app_mod._rate_limit_key(request)
+
+    assert key == "principal:configured-api-key"
+    assert "valid-secret" not in key
+
+
+@pytest.mark.asyncio
+async def test_lifespan_cleans_up_when_async_bootstrap_fails():
+    with (
+        patch("doitall.api.app.bootstrap") as bootstrap,
+        patch(
+            "doitall.api.app.async_bootstrap",
+            new=AsyncMock(side_effect=RuntimeError("not ready")),
+        ),
+        patch("doitall.api.app.cleanup", new=AsyncMock()) as cleanup,
+        pytest.raises(RuntimeError, match="not ready"),
+    ):
+        async with app_mod.lifespan(SimpleNamespace()):
+            pass
+
+    bootstrap.assert_called_once_with()
+    cleanup.assert_awaited_once_with()
 
 
 def test_route_label_prefers_fastapi_route_template():

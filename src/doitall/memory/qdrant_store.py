@@ -68,6 +68,22 @@ class QdrantStore(VectorStore):
             ],
         )
 
+    async def upsert_many(
+        self,
+        points: list[tuple[str, list[float], dict[str, Any]]],
+    ) -> None:
+        """Submit a complete point batch in one Qdrant update request."""
+        if not points:
+            return
+        await self.client.upsert(
+            collection_name=self.collection_name,
+            wait=True,
+            points=[
+                PointStruct(id=point_id, vector=vector, payload=payload)
+                for point_id, vector, payload in points
+            ],
+        )
+
     async def search(
         self,
         vector: list[float],

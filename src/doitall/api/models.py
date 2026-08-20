@@ -2,6 +2,8 @@
 REST API request and response models for the Doitall framework.
 """
 
+import json
+import math
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -54,6 +56,49 @@ class ChatResponse(BaseModel):
 # Knowledge ingestion
 # ---------------------------------------------------------------------------
 
+MAX_METADATA_KEYS = 100
+MAX_METADATA_SERIALIZED_BYTES = 16 * 1024
+MAX_METADATA_DEPTH = 5
+MAX_METADATA_KEY_LENGTH = 128
+
+
+def _validate_metadata_value(value: Any, *, depth: int) -> None:
+    if depth > MAX_METADATA_DEPTH:
+        raise ValueError(f"metadata nesting depth may not exceed {MAX_METADATA_DEPTH}")
+
+    if isinstance(value, dict):
+        if len(value) > MAX_METADATA_KEYS:
+            raise ValueError(
+                f"metadata objects may contain at most {MAX_METADATA_KEYS} keys"
+            )
+        for key, nested_value in value.items():
+            if not isinstance(key, str):
+                raise ValueError("metadata keys must be strings")
+            if len(key) > MAX_METADATA_KEY_LENGTH:
+                raise ValueError(
+                    "metadata key length may not exceed "
+                    f"{MAX_METADATA_KEY_LENGTH} characters"
+                )
+            _validate_metadata_value(nested_value, depth=depth + 1)
+        return
+
+    if isinstance(value, list):
+        for item in value:
+            _validate_metadata_value(item, depth=depth + 1)
+        return
+
+    if value is None or isinstance(value, (str, bool, int)):
+        return
+
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("metadata numbers must be finite")
+        return
+
+    raise ValueError(
+        "metadata values must be JSON-compatible objects, arrays, or scalars"
+    )
+
 
 class IngestRequest(BaseModel):
     """Request body to ingest a document into the knowledge base."""
@@ -75,8 +120,24 @@ class IngestRequest(BaseModel):
     @field_validator("metadata")
     @classmethod
     def metadata_must_be_reasonable(cls, value: dict[str, Any]) -> dict[str, Any]:
-        if len(value) > 100:
-            raise ValueError("metadata may contain at most 100 keys")
+        _validate_metadata_value(value, depth=1)
+
+        try:
+            serialized = json.dumps(
+                value,
+                ensure_ascii=False,
+                allow_nan=False,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("metadata must be valid JSON") from exc
+
+        if len(serialized) > MAX_METADATA_SERIALIZED_BYTES:
+            raise ValueError(
+                "serialized metadata may not exceed "
+                f"{MAX_METADATA_SERIALIZED_BYTES} bytes"
+            )
+
         return value
 
 
@@ -131,7 +192,7 @@ class MessageDetail(BaseModel):
 
     role: str
     content: str
-    tool_calls: list[dict] = Field(default_factory=list)
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     created_at: str
 
 
@@ -149,3 +210,46 @@ class SessionDetail(SessionSummary):
     """Full session info including message history."""
 
     messages: list[MessageDetail]
+
+
+# ---------------------------------------------------------------------------
+# Knowledge management
+# ---------------------------------------------------------------------------
+
+
+class KnowledgeDocument(BaseModel):
+    """Summary of an indexed document in the knowledge base."""
+
+    document_id: str
+    title: str | None = None
+    chunk_count: int
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeListResponse(BaseModel):
+    """Paged list of indexed knowledge documents."""
+
+    documents: list[KnowledgeDocument]
+    total: int
+
+
+class KnowledgeSearchRequest(BaseModel):
+    """Request body for a semantic knowledge search preview."""
+
+    query: str = Field(..., min_length=1, max_length=2000, description="Search query.")
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+class KnowledgeSearchResult(BaseModel):
+    """A single search result chunk from the knowledge base."""
+
+    document_id: str
+    text: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class KnowledgeSearchResponse(BaseModel):
+    """Search results for a knowledge query."""
+
+    query: str
+    results: list[KnowledgeSearchResult]

@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import Index
 from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
 
@@ -34,6 +35,9 @@ class MessageRecord(SQLModel, table=True):
     """One row per message turn within a session."""
 
     __tablename__ = "messages"
+    __table_args__ = (
+        Index("ix_messages_session_created_at", "session_id", "created_at"),
+    )
 
     id: int | None = Field(default=None, primary_key=True)
     session_id: str = Field(
@@ -55,7 +59,7 @@ class MessageRecord(SQLModel, table=True):
     # ToolMessage extra fields.
     tool_call_id: str | None = Field(default=None)
     name: str | None = Field(default=None)
-    
+
     # ToolMessage execution metadata.
     execution_metadata_json: str | None = Field(
         default=None,

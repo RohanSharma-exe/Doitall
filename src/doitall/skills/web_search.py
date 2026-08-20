@@ -1,6 +1,8 @@
 """Web search and page fetch skills."""
 
+import ipaddress
 import re
+import socket
 from typing import Any
 from urllib.parse import unquote, urlparse
 
@@ -11,8 +13,50 @@ from doitall.skills.base import BaseSkill
 
 _UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/138.0 Safari/537.36"
 )
+
+# ---------------------------------------------------------------------------
+# SSRF protection — private / link-local / loopback ranges
+# ---------------------------------------------------------------------------
+
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local / AWS metadata
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("::1/128"),  # IPv6 loopback
+    ipaddress.ip_network("fc00::/7"),  # IPv6 unique-local
+    ipaddress.ip_network("fe80::/10"),  # IPv6 link-local
+]
+
+
+def _is_ssrf_blocked(host: str) -> bool:
+    """Return True if the resolved IP of *host* falls in a private/internal range.
+
+    DNS is resolved here so that DNS-rebinding attacks (public hostname →
+    private IP) are also caught.
+    """
+    try:
+        # Resolve to a list of (family, type, proto, canonname, sockaddr) tuples
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        # Unresolvable host — let httpx surface the DNS error naturally.
+        return False
+
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        for network in _PRIVATE_NETWORKS:
+            if ip in network:
+                return True
+    return False
+
 
 _RESULT_BLOCK_RE = re.compile(
     r'<a rel="nofollow" class="result__a" href="(?P<url>[^"]+)">(?P<title>.*?)</a>'
@@ -104,6 +148,17 @@ class WebSearchSkill(BaseSkill):
             if url and title:
                 results.append({"title": title, "url": url, "snippet": snippet})
 
+        # BUG-N003: Distinguish a successful parse with no results from a
+        # parser failure (DDG markup changed so the regex matched nothing).
+        if not results and "result__a" not in html:
+            # The page contained no recognisable result blocks at all —
+            # treat this as a parse failure rather than "no results".
+            return {
+                "query": query,
+                "results": [],
+                "error": "parse_failure: no result blocks found in response HTML",
+            }
+
         return {"query": query, "results": results}
 
 
@@ -148,6 +203,15 @@ class WebFetchSkill(BaseSkill):
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             raise ValueError("Only absolute http(s) URLs are supported.")
         max_chars = max(200, min(max_chars, 12000))
+
+        # BUG-N007: SSRF protection — block requests to private / internal IPs.
+        # Hostname is resolved here (not by httpx) so DNS-rebinding is also caught.
+        host = parsed.hostname or ""
+        if host and _is_ssrf_blocked(host):
+            return {
+                "url": url,
+                "error": "blocked: target resolves to a private or link-local address",
+            }
 
         try:
             async with httpx.AsyncClient(

@@ -1,4 +1,15 @@
-from doitall.api.models import ChatRequest, ChatResponse, MessageDetail
+import pytest
+from pydantic import ValidationError
+
+from doitall.api.models import (
+    MAX_METADATA_DEPTH,
+    MAX_METADATA_KEY_LENGTH,
+    MAX_METADATA_SERIALIZED_BYTES,
+    ChatRequest,
+    ChatResponse,
+    IngestRequest,
+    MessageDetail,
+)
 
 
 def test_message_detail_tool_calls_are_isolated():
@@ -38,3 +49,45 @@ def test_chat_response_includes_assistant_message_shape():
 
     assert response.message["role"] == "assistant"
     assert response.message["content"] == "hello"
+
+
+def test_ingest_request_accepts_bounded_json_metadata():
+    request = IngestRequest(
+        content="hello",
+        metadata={"source": {"tags": ["docs", 1, True, None]}},
+    )
+
+    assert request.metadata["source"]["tags"] == ["docs", 1, True, None]
+
+
+def test_ingest_request_rejects_oversized_serialized_metadata():
+    metadata = {"value": "x" * MAX_METADATA_SERIALIZED_BYTES}
+
+    with pytest.raises(ValidationError, match="serialized metadata may not exceed"):
+        _ = IngestRequest(content="hello", metadata=metadata)
+
+
+def test_ingest_request_rejects_excessive_metadata_depth():
+    metadata: dict[str, object] = {"value": "ok"}
+    for _ in range(MAX_METADATA_DEPTH):
+        metadata = {"nested": metadata}
+
+    with pytest.raises(ValidationError, match="nesting depth may not exceed"):
+        _ = IngestRequest(content="hello", metadata=metadata)
+
+
+def test_ingest_request_rejects_long_nested_metadata_keys():
+    metadata = {"nested": {"x" * (MAX_METADATA_KEY_LENGTH + 1): "value"}}
+
+    with pytest.raises(ValidationError, match="key length may not exceed"):
+        _ = IngestRequest(content="hello", metadata=metadata)
+
+
+def test_ingest_request_rejects_non_json_metadata_values():
+    with pytest.raises(ValidationError, match="JSON-compatible"):
+        _ = IngestRequest(content="hello", metadata={"invalid": ("tuple",)})
+
+
+def test_ingest_request_rejects_non_finite_metadata_numbers():
+    with pytest.raises(ValidationError, match="numbers must be finite"):
+        _ = IngestRequest(content="hello", metadata={"invalid": float("inf")})

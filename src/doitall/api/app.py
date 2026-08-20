@@ -26,7 +26,10 @@ from doitall.api.routes import chat, commands, health, knowledge, providers, sys
 from doitall.config.settings import settings
 from doitall.core.bootstrap import async_bootstrap, bootstrap, cleanup
 from doitall.core.exceptions import DoitallError
-from doitall.security.auth import require_metrics_api_key
+from doitall.security.auth import (
+    _matches_configured_api_key,
+    require_metrics_api_key,
+)
 
 # WARNING: In-process fixed-window request limiter. State is NOT shared across
 # processes or replicas. Before running more than one instance (e.g. behind a
@@ -48,11 +51,18 @@ def _rate_limit_for_path(path: str) -> int | None:
 
 
 def _rate_limit_key(request: Request) -> str:
-    api_key = request.headers.get("x-api-key") or request.headers.get(
-        "authorization", ""
-    )
-    if api_key:
-        return f"key:{api_key}"
+    """Return a stable identity without retaining unverified credentials."""
+    x_api_key = request.headers.get("x-api-key")
+    authorization = request.headers.get("authorization")
+    bearer_token = None
+    if authorization and authorization.startswith("Bearer "):
+        bearer_token = authorization.removeprefix("Bearer ").strip()
+
+    if _matches_configured_api_key(x_api_key) or _matches_configured_api_key(
+        bearer_token
+    ):
+        return "principal:configured-api-key"
+
     host = request.client.host if request.client else "unknown"
     return f"ip:{host}"
 
@@ -108,11 +118,13 @@ def _request_route_label(request: Request) -> str:
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Bootstrap the framework on startup and clean up on shutdown."""
     logger.info("Starting Doitall API…")
-    bootstrap()  # sync: wire all services into the DI container
-    await async_bootstrap()  # async: create Qdrant collections on running loop
-    yield
-    logger.info("Shutting down Doitall API…")
-    await cleanup()
+    try:
+        bootstrap()  # sync: wire all services into the DI container
+        await async_bootstrap()  # async: create Qdrant collections on running loop
+        yield
+    finally:
+        logger.info("Shutting down Doitall API…")
+        await cleanup()
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
+from doitall.models.message import ToolMessage, UserMessage
 from doitall.models.tool_call import ToolExecutionMetadata
-from doitall.models.message import ToolMessage
-from doitall.models.message import UserMessage
 from doitall.services.conversation_service import ConversationService
 
 
@@ -42,6 +41,7 @@ def test_messages_returns_copy():
     messages.clear()
 
     assert len(service.messages()) == 1
+
 
 def test_tool_message_preserves_execution_metadata() -> None:
     service = ConversationService()

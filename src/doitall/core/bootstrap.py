@@ -52,116 +52,124 @@ def bootstrap() -> None:
         )
         return
 
+    # Set the flag immediately so a recursive call (e.g. from a lifespan
+    # retry) doesn't double-initialise.  Reset it in the except block so
+    # that a failed bootstrap does not permanently prevent re-initialisation.
     _bootstrap_has_run = True
+    try:
+        configure_logging()
 
-    configure_logging()
+        litellm.set_verbose = False
 
-    litellm.set_verbose = False
+        logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+        logging.getLogger("litellm").setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    logging.getLogger("LiteLLM").setLevel(logging.ERROR)
-    logging.getLogger("litellm").setLevel(logging.ERROR)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+        if settings.ENVIRONMENT == "production" and settings.DEBUG:
+            raise RuntimeError("Refusing to start production with DEBUG=True")
+        if settings.ENVIRONMENT == "production" and "*" in settings.CORS_ORIGINS:
+            raise RuntimeError(
+                "Refusing to start production with wildcard CORS origins"
+            )
+        if settings.ENVIRONMENT == "production" and not settings.API_KEY:
+            raise RuntimeError("Refusing to start production without API_KEY")
 
-    if settings.ENVIRONMENT == "production" and settings.DEBUG:
-        raise RuntimeError("Refusing to start production with DEBUG=True")
-    if settings.ENVIRONMENT == "production" and "*" in settings.CORS_ORIGINS:
-        raise RuntimeError("Refusing to start production with wildcard CORS origins")
-    if settings.ENVIRONMENT == "production" and not settings.API_KEY:
-        raise RuntimeError("Refusing to start production without API_KEY")
+        # Initialize database
+        init_db()
 
-    # Initialize database
-    init_db()
+        provider_manager = ProviderManager()
 
-    provider_manager = ProviderManager()
-
-    embedding_manager = EmbeddingManager.from_model(
-        settings.EMBEDDING_MODEL,
-    )
-
-    # Build async Qdrant client — all I/O goes through the event loop.
-    qdrant_client = AsyncQdrantClient(
-        url=settings.QDRANT_URL,
-        api_key=settings.QDRANT_API_KEY or None,
-        check_compatibility=False,
-    )
-
-    # Memory store — uses the 'memories' collection
-    qdrant_store = QdrantStore(
-        client=qdrant_client,
-        collection_name="memories",
-        vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
-    )
-
-    # Knowledge store — uses a SEPARATE 'knowledge' collection to prevent
-    # payload key collisions when searching (memory and chunk payloads differ)
-    knowledge_qdrant_store = QdrantStore(
-        client=qdrant_client,
-        collection_name="knowledge",
-        vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
-    )
-
-    qdrant_repository = QdrantRepository(
-        vector_store=qdrant_store,
-        embedding_manager=embedding_manager,
-    )
-
-    memory_store = VectorMemoryStore(
-        repository=qdrant_repository,
-    )
-
-    knowledge_repository = VectorKnowledgeRepository(
-        chunker=SimpleChunker(),
-        embedding_manager=embedding_manager,
-        vector_store=knowledge_qdrant_store,
-    )
-
-    knowledge_ingestion = KnowledgeIngestionService(
-        repository=knowledge_repository,
-    )
-
-    from doitall.providers.registry import register_providers
-
-    register_providers(provider_manager)
-
-    # Only set default if it was actually registered (key might be missing).
-    if provider_manager.exists(settings.DEFAULT_PROVIDER):
-        provider_manager.set_default(settings.DEFAULT_PROVIDER)
-    elif provider_manager.names():
-        logger.warning(
-            f"Configured DEFAULT_PROVIDER='{settings.DEFAULT_PROVIDER}' was not registered "
-            f"(no API key?). Using first available: '{provider_manager.names()[0]}'."
+        embedding_manager = EmbeddingManager.from_model(
+            settings.EMBEDDING_MODEL,
         )
 
-    skill_registry = SkillRegistry()
-    skill_manager = SkillManager(
-        skill_registry,
-        container,
-    )
+        # Build async Qdrant client — all I/O goes through the event loop.
+        qdrant_client = AsyncQdrantClient(
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY or None,
+            check_compatibility=False,
+        )
 
-    register_builtin_skills(skill_registry)
+        # Memory store — uses the 'memories' collection
+        qdrant_store = QdrantStore(
+            client=qdrant_client,
+            collection_name="memories",
+            vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
+        )
 
-    workspace = Workspace(settings.DATA_DIR)
+        # Knowledge store — uses a SEPARATE 'knowledge' collection to prevent
+        # payload key collisions when searching (memory and chunk payloads differ)
+        knowledge_qdrant_store = QdrantStore(
+            client=qdrant_client,
+            collection_name="knowledge",
+            vector_size=get_vector_size_for_model(settings.EMBEDDING_MODEL),
+        )
 
-    # --- Register all services in the DI container ---
-    container.register("settings", settings)
-    container.register("engine", engine)
-    container.register("provider_manager", provider_manager)
-    container.register("embedding_manager", embedding_manager)
-    container.register("qdrant_client", qdrant_client)
-    container.register("qdrant_store", qdrant_store)
-    container.register("knowledge_qdrant_store", knowledge_qdrant_store)
-    container.register("qdrant_repository", qdrant_repository)
-    container.register("memory_store", memory_store)
-    container.register("knowledge_repository", knowledge_repository)
-    container.register("knowledge_ingestion", knowledge_ingestion)
-    container.register("skill_registry", skill_registry)
-    container.register("skill_manager", skill_manager)
-    container.register("workspace", workspace)
-    container.register("session_repository", SessionRepository())
+        qdrant_repository = QdrantRepository(
+            vector_store=qdrant_store,
+            embedding_manager=embedding_manager,
+        )
 
-    logger.info(f"Starting {settings.APP_NAME}")
-    logger.info(f"Version: {settings.APP_VERSION}")
-    logger.info(f"Environment: {settings.ENVIRONMENT}")
+        memory_store = VectorMemoryStore(
+            repository=qdrant_repository,
+        )
+
+        knowledge_repository = VectorKnowledgeRepository(
+            chunker=SimpleChunker(),
+            embedding_manager=embedding_manager,
+            vector_store=knowledge_qdrant_store,
+        )
+
+        knowledge_ingestion = KnowledgeIngestionService(
+            repository=knowledge_repository,
+        )
+
+        from doitall.providers.registry import register_providers
+
+        register_providers(provider_manager)
+
+        # Only set default if it was actually registered (key might be missing).
+        if provider_manager.exists(settings.DEFAULT_PROVIDER):
+            provider_manager.set_default(settings.DEFAULT_PROVIDER)
+        elif provider_manager.names():
+            logger.warning(
+                f"Configured DEFAULT_PROVIDER='{settings.DEFAULT_PROVIDER}' was not registered "
+                f"(no API key?). Using first available: '{provider_manager.names()[0]}'."
+            )
+
+        skill_registry = SkillRegistry()
+        skill_manager = SkillManager(
+            skill_registry,
+            container,
+        )
+
+        register_builtin_skills(skill_registry)
+
+        workspace = Workspace(settings.DATA_DIR)
+
+        # --- Register all services in the DI container ---
+        container.register("settings", settings)
+        container.register("engine", engine)
+        container.register("provider_manager", provider_manager)
+        container.register("embedding_manager", embedding_manager)
+        container.register("qdrant_client", qdrant_client)
+        container.register("qdrant_store", qdrant_store)
+        container.register("knowledge_qdrant_store", knowledge_qdrant_store)
+        container.register("qdrant_repository", qdrant_repository)
+        container.register("memory_store", memory_store)
+        container.register("knowledge_repository", knowledge_repository)
+        container.register("knowledge_ingestion", knowledge_ingestion)
+        container.register("skill_registry", skill_registry)
+        container.register("skill_manager", skill_manager)
+        container.register("workspace", workspace)
+        container.register("session_repository", SessionRepository())
+
+        logger.info(f"Starting {settings.APP_NAME}")
+        logger.info(f"Version: {settings.APP_VERSION}")
+        logger.info(f"Environment: {settings.ENVIRONMENT}")
+    except Exception:
+        _bootstrap_has_run = False
+        raise
 
 
 async def async_bootstrap() -> None:

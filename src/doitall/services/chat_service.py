@@ -1,5 +1,6 @@
 """ChatService facade orchestrating context assembly, agent execution, and memory pipeline processing."""
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from loguru import logger
@@ -38,7 +39,7 @@ class ChatService:
         """Stream LLM chat response chunks while updating conversation history and memory pipeline."""
         user_message = UserMessage(content=content)
 
-        self._conversation_service.add_message(user_message)
+        await asyncio.to_thread(self._conversation_service.add_message, user_message)
 
         if model:
             context = await self._context_assembler.assemble(
@@ -51,7 +52,7 @@ class ChatService:
         if context.tools:
             response = await self._agent_executor.execute(context)
             for message in context.messages[original_context_length:]:
-                self._conversation_service.add_message(message)
+                await asyncio.to_thread(self._conversation_service.add_message, message)
             if response.content:
                 yield response.content
             assistant_message = AssistantMessage(
@@ -65,7 +66,9 @@ class ChatService:
                 yield chunk
 
             assistant_message = AssistantMessage(content="".join(response_chunks))
-        self._conversation_service.add_message(assistant_message)
+        await asyncio.to_thread(
+            self._conversation_service.add_message, assistant_message
+        )
 
         try:
             await self._memory_pipeline.process(user_message, assistant_message)
@@ -93,7 +96,8 @@ class ChatService:
             content=content,
         )
 
-        self._conversation_service.add_message(
+        await asyncio.to_thread(
+            self._conversation_service.add_message,
             user_message,
         )
 
@@ -121,7 +125,7 @@ class ChatService:
         )
 
         for message in context.messages[original_context_length:]:
-            self._conversation_service.add_message(message)
+            await asyncio.to_thread(self._conversation_service.add_message, message)
 
         if response.usage_tokens:
             logger.debug(
@@ -136,7 +140,8 @@ class ChatService:
             tool_calls=response.tool_calls,
         )
 
-        self._conversation_service.add_message(
+        await asyncio.to_thread(
+            self._conversation_service.add_message,
             assistant_message,
         )
 

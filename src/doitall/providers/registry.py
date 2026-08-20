@@ -10,6 +10,7 @@ from doitall.providers.anthropic import AnthropicProvider
 from doitall.providers.gemini import GeminiProvider
 from doitall.providers.groq import GroqProvider
 from doitall.providers.manager import ProviderManager
+from doitall.providers.nvidia import NvidiaProvider
 from doitall.providers.ollama import OllamaProvider
 from doitall.providers.openai import OpenAIProvider
 from doitall.providers.openrouter import OpenrouterProvider
@@ -27,6 +28,7 @@ def register_providers(manager: ProviderManager) -> None:
         ("openai", settings.OPENAI_API_KEY, OpenAIProvider),
         ("anthropic", settings.ANTHROPIC_API_KEY, AnthropicProvider),
         ("openrouter", settings.OPENROUTER_API_KEY, OpenrouterProvider),
+        ("nvidia", settings.NVIDIA_API_KEY, NvidiaProvider),
     ]
 
     registered_any = False

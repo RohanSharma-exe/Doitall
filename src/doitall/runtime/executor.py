@@ -10,6 +10,7 @@ from doitall.models.message import (
     ToolMessage,
 )
 from doitall.models.provider_response import ProviderResponse
+from doitall.providers.exceptions import is_retryable_provider_error
 from doitall.providers.manager import ProviderManager
 from doitall.runtime.context import RuntimeContext
 from doitall.runtime.prompt_builder import PromptBuilder
@@ -80,6 +81,23 @@ class RuntimeExecutor:
 
         return payload
 
+    @staticmethod
+    def _should_retry_without_tools(exc: Exception, has_tools: bool) -> bool:
+        if not has_tools:
+            return False
+
+        message = str(exc).lower()
+        return any(
+            marker in message
+            for marker in (
+                "tool_use_failed",
+                "failed to call a function",
+                "tool calling",
+                "tool call",
+                "function call",
+            )
+        )
+
     async def stream(
         self,
         context: RuntimeContext,
@@ -87,29 +105,25 @@ class RuntimeExecutor:
         messages = self.prepare(context)
         payload = self._payload(messages)
         errors: list[Exception] = []
+
         for candidate in self._provider_manager.fallback_candidates(context.provider):
+            emitted_output = False
             try:
                 async for chunk in candidate.provider.stream(
                     payload,
                     tools=context.tools,
                     model=context.model,
                 ):
+                    emitted_output = True
                     yield chunk
 
                 return
 
             except Exception as exc:
-                message = str(exc).lower()
+                if emitted_output:
+                    raise
 
-                should_retry_without_tools = bool(context.tools) and (
-                    "tool_use_failed" in message
-                    or "failed to call a function" in message
-                    or "tool calling" in message
-                    or "tool call" in message
-                    or "function call" in message
-                )
-
-                if should_retry_without_tools:
+                if self._should_retry_without_tools(exc, bool(context.tools)):
                     logger.warning(
                         "Provider '{}' rejected tool calling while streaming. Retrying without tools.",
                         candidate.provider.name,
@@ -121,30 +135,31 @@ class RuntimeExecutor:
                             tools=[],
                             model=context.model,
                         ):
+                            emitted_output = True
                             yield chunk
 
                         return
 
                     except Exception as retry_exc:
-                        errors.append(retry_exc)
+                        if emitted_output:
+                            raise
 
+                        exc = retry_exc
                         logger.warning(
                             "Retry without tools also failed for '{}': {}",
                             candidate.provider.name,
                             retry_exc,
                         )
 
-                        continue
-
                 errors.append(exc)
+                if not is_retryable_provider_error(exc):
+                    raise exc
 
                 logger.warning(
-                    "Provider '{}' failed: {}",
+                    "Provider '{}' failed with a retryable error: {}",
                     candidate.provider.name,
                     exc,
                 )
-
-                continue
 
         if errors:
             raise errors[-1]
@@ -181,17 +196,7 @@ class RuntimeExecutor:
                 return response
 
             except Exception as exc:
-                message = str(exc).lower()
-
-                should_retry_without_tools = bool(context.tools) and (
-                    "tool_use_failed" in message
-                    or "failed to call a function" in message
-                    or "tool calling" in message
-                    or "tool call" in message
-                    or "function call" in message
-                )
-
-                if should_retry_without_tools:
+                if self._should_retry_without_tools(exc, bool(context.tools)):
                     logger.warning(
                         "Provider '{}' rejected tool calling. Retrying without tools.",
                         candidate.provider.name,
@@ -213,25 +218,22 @@ class RuntimeExecutor:
                         return response
 
                     except Exception as retry_exc:
-                        errors.append(retry_exc)
-
+                        exc = retry_exc
                         logger.warning(
                             "Retry without tools also failed for '{}': {}",
                             candidate.provider.name,
                             retry_exc,
                         )
 
-                        continue
-
                 errors.append(exc)
+                if not is_retryable_provider_error(exc):
+                    raise exc
 
                 logger.warning(
-                    "Provider '{}' failed: {}",
+                    "Provider '{}' failed with a retryable error: {}",
                     candidate.provider.name,
                     exc,
                 )
-
-                continue
 
         if errors:
             raise errors[-1]

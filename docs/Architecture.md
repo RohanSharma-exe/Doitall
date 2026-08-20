@@ -178,18 +178,30 @@ Provides secure access to local files and directories.
 
 ---
 
+## Implemented Features
+
+The following items were previously listed as future work and are now complete:
+
+- ✅ **Native tool calling** — `AgentExecutor` drives a bounded tool-calling loop (max 10 iterations)
+- ✅ **Streaming responses** — `POST /v1/chat/stream` returns SSE events; client-disconnect detection added
+- ✅ **Multiple tool execution** — the agent loop handles parallel and sequential tool calls per turn
+- ✅ **Persisted conversation sessions** — SQLModel/SQLite backend; sessions survive restarts
+- ✅ **Knowledge management CRUD** — `GET/DELETE /v1/knowledge`, `POST /v1/knowledge/search`
+
+---
+
 ## Future Work
 
-- Native tool calling with live LLMs
-- Streaming responses
-- Structured outputs
-- Multiple tool execution
-- MCP support
-- Multi-agent orchestration
-- Persisted conversation sessions
-- Real provider health checks
-- Observability & tracing
-- Production deployment
+Genuinely not-yet-implemented items:
+
+- **MCP support** — `mcp/` module is a stub; `POST /v1/extensions` returns 501 for `mcp_server` kind
+- **Plugin support** — `plugins/` module is a stub; `POST /v1/extensions` returns 501 for `plugin` kind
+- **Structured outputs** — provider structured-output mode not wired
+- **Multi-agent orchestration** — single-agent execution only
+- **Real provider health checks** — `GET /v1/health/providers` uses best-effort availability flags
+- **Observability & tracing** — `/metrics` endpoint present but returns process-local counters only; Prometheus integration is Milestone 2
+- **Production deployment guide** — `docs/Production-Readiness.md` has a checklist; no Helm/k8s manifests yet
+- **Web frontend** — fully specified in `docs/product-requirements.md` and `docs/frontend-plan.md`; implementation is Milestone 2
 
 ---
 

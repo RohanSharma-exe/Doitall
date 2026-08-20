@@ -18,6 +18,7 @@ def test_build():
     assert len(messages) == 1
     assert messages[0].content == "42"
 
+
 def test_build_preserves_execution_metadata() -> None:
     builder = ToolMessageBuilder()
 

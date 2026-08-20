@@ -370,9 +370,7 @@ async def test_agent_feeds_tool_failure_back_to_runtime() -> None:
 async def test_agent_does_not_feed_non_tool_messages_to_engine() -> None:
     class NonToolRuntime:
         async def execute(self, context: RuntimeContext) -> ProviderResponse:
-            return ProviderResponse(
-                content="I have the answer."
-            )
+            return ProviderResponse(content="I have the answer.")
 
     class NonToolEngine:
         async def execute(

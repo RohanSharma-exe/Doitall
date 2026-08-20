@@ -1,6 +1,7 @@
 services:
   api:
     build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
@@ -8,7 +9,11 @@ services:
       DEBUG: "false"
       API_HOST: 0.0.0.0
       API_PORT: 8000
-      DATABASE_URL: sqlite:///storage/doitall.db
+      BASE_DIR: /app
+      DATA_DIR: /app/data
+      STORAGE_DIR: /app/storage
+      LOG_DIR: /app/logs
+      DATABASE_URL: sqlite:////app/storage/doitall.db
       QDRANT_URL: http://qdrant:6333
       API_KEY: ${API_KEY:?set API_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-["https://example.com"]}
@@ -20,9 +25,11 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     volumes:
       - doitall-storage:/app/storage
+      - doitall-data:/app/data
+      - doitall-logs:/app/logs
     depends_on:
       qdrant:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/health/live')"]
       interval: 30s
@@ -34,6 +41,14 @@ services:
       - "6333:6333"
     volumes:
       - qdrant-storage:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 volumes:
   doitall-storage:
+  doitall-data:
+  doitall-logs:
   qdrant-storage:

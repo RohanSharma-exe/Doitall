@@ -23,3 +23,15 @@ class ProviderTimeoutError(ProviderError):
 
 class ProviderResponseError(ProviderError):
     """Raised when invalid or unparseable response is returned by LLM provider."""
+
+
+RETRYABLE_PROVIDER_ERRORS = (
+    ProviderRateLimitError,
+    ProviderUnavailableError,
+    ProviderTimeoutError,
+)
+
+
+def is_retryable_provider_error(error: Exception) -> bool:
+    """Return whether a provider failure is safe to retry on another provider."""
+    return isinstance(error, RETRYABLE_PROVIDER_ERRORS)

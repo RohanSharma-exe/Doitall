@@ -15,6 +15,10 @@ uv run pytest
 
 All commands must exit with status code `0` before release.
 
+## Supported deployment boundary
+
+Doitall currently supports a trusted **single-tenant, single-process** deployment. The configured API key is not a tenant identity: anyone holding it can access all sessions, memories, and knowledge. The built-in request counters and rate limiter are process-local. Before serving mutually untrusted users or adding workers/replicas, add tenant ownership enforcement plus shared rate-limit and observability backends.
+
 ## Recommended release validation
 
 In addition to the required gates, validate the following in an environment that mirrors production:
@@ -32,6 +36,7 @@ In addition to the required gates, validate the following in an environment that
 
 3. **Vector storage**
    - Confirm Qdrant is reachable from the API host.
+   - When using Docker Compose, confirm Qdrant becomes healthy before the API starts.
    - Confirm the memory and knowledge collections use an embedding size compatible with `EMBEDDING_MODEL`.
 
 4. **LLM providers**
@@ -44,8 +49,10 @@ In addition to the required gates, validate the following in an environment that
    - Test `/v1/chat/stream` when tools are available. The service intentionally uses the non-streaming tool loop fallback so tool calls are executed and persisted instead of being ignored.
 
 6. **Operational checks**
+   - Verify `/v1/health/live` reports process liveness and `/v1/health/ready` reports dependency readiness.
+   - Verify readiness failures expose only sanitized details while full exceptions appear in server logs.
    - Verify logs are written at the expected `LOG_LEVEL`.
-   - Verify process supervision restarts the API on failure.
+   - Verify process supervision restarts the API on failure. The Compose deployment uses `restart: unless-stopped`.
    - Verify network/firewall rules restrict database and Qdrant access.
    - Verify secrets are injected through environment variables or a secrets manager, not committed files.
 

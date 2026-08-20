@@ -15,6 +15,6 @@ class Prompt(BaseModel):
     attachments: list[Attachment] = Field(default_factory=list)
     tools: list[Tool] = Field(default_factory=list)
 
-    temperature: float = 0.7
-    top_p: float = 1.0
-    max_tokens: int | None = None
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    top_p: float = Field(default=1.0, ge=0.0, le=1.0)
+    max_tokens: int | None = Field(default=None, gt=0)

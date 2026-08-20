@@ -9,6 +9,8 @@ from sqlmodel import SQLModel, create_engine
 
 import doitall.database.models  # noqa: F401 — register table metadata
 from doitall.database.session_repository import SessionRepository
+from doitall.models.message import ToolMessage
+from doitall.models.tool_call import ToolExecutionMetadata
 
 
 def _make_repo(engine) -> SessionRepository:
@@ -78,6 +80,41 @@ def test_append_message_with_tool_calls(repo):
     messages = repo.get_messages("sess-5")
     assert len(messages) == 1
     assert messages[0].get_tool_calls() == tool_calls
+
+
+def test_tool_message_execution_metadata_round_trips(repo):
+    repo.get_or_create("sess-tool-metadata")
+    metadata = ToolExecutionMetadata(
+        status="success",
+        duration_ms=12.5,
+    )
+    message = ToolMessage(
+        content="42",
+        tool_call_id="call-1",
+        name="calculator",
+        execution_metadata=metadata,
+    )
+
+    repo.append_message(
+        "sess-tool-metadata",
+        role=message.role,
+        content=message.content,
+        tool_call_id=message.tool_call_id,
+        name=message.name,
+        execution_metadata=metadata.model_dump(),
+    )
+
+    record = repo.get_messages("sess-tool-metadata")[0]
+    assert record.execution_metadata_json is not None
+    round_tripped = ToolMessage(
+        content=record.content,
+        tool_call_id=record.tool_call_id or "",
+        name=record.name or "",
+        execution_metadata=ToolExecutionMetadata.model_validate_json(
+            record.execution_metadata_json
+        ),
+    )
+    assert round_tripped == message
 
 
 def test_clear_messages(repo):
