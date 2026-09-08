@@ -1,0 +1,675 @@
+=== ROOT ===
+.dockerignore
+.env
+.env.example
+.gitignore
+.pre-commit-config.yaml
+.python-version
+alembic.ini
+AUDIT_REPORT.md
+BUG_TRACKER.md
+docker-compose.yml
+Dockerfile
+LICENSE
+memory_demo.py
+mypy.ini
+pyproject.toml
+pytest.ini
+README.md
+ruff.toml
+structure.txt
+test.py
+uv.lock
+
+=== DIRECTORIES ===
+.git
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.venv
+check
+config
+data
+dist
+docker
+docs
+examples
+logs
+migrations
+ruff
+scripts
+src
+storage
+tests
+
+=== SRC ===
+Folder PATH listing for volume Windows
+Volume serial number is 000001FF D0E0:F627
+C:\PROJECT\DOITALL\SRC
+\---doitall
+    |   application.py
+    |   chat.py
+    |   cli.py
+    |   main.py
+    |   __init__.py
+    |   
+    +---agent
+    |   |   agent.py
+    |   |   executor.py
+    |   |   factory.py
+    |   |   manager.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           agent.cpython-314.pyc
+    |           executor.cpython-314.pyc
+    |           manager.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---api
+    |   |   app.py
+    |   |   errors.py
+    |   |   models.py
+    |   |   __init__.py
+    |   |   
+    |   +---routes
+    |   |   |   chat.py
+    |   |   |   commands.py
+    |   |   |   health.py
+    |   |   |   knowledge.py
+    |   |   |   providers.py
+    |   |   |   system.py
+    |   |   |   __init__.py
+    |   |   |   
+    |   |   \---__pycache__
+    |   |           chat.cpython-314.pyc
+    |   |           commands.cpython-314.pyc
+    |   |           health.cpython-314.pyc
+    |   |           knowledge.cpython-314.pyc
+    |   |           providers.cpython-314.pyc
+    |   |           system.cpython-314.pyc
+    |   |           __init__.cpython-314.pyc
+    |   |           
+    |   \---__pycache__
+    |           app.cpython-314.pyc
+    |           errors.cpython-314.pyc
+    |           models.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---commands
+    |   |   executor.py
+    |   |   registry.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           executor.cpython-314.pyc
+    |           registry.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---config
+    |   |   constants.py
+    |   |   logging.py
+    |   |   settings.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           logging.cpython-314.pyc
+    |           settings.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---core
+    |   |   application.py
+    |   |   bootstrap.py
+    |   |   exceptions.py
+    |   |   types.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           bootstrap.cpython-314.pyc
+    |           exceptions.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---database
+    |   |   base.py
+    |   |   migrations.py
+    |   |   models.py
+    |   |   session.py
+    |   |   session_repository.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           models.cpython-314.pyc
+    |           session.cpython-314.pyc
+    |           session_repository.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---embeddings
+    |   |   litellm_service.py
+    |   |   manager.py
+    |   |   service.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           litellm_service.cpython-314.pyc
+    |           manager.cpython-314.pyc
+    |           service.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---knowledge
+    |   |   chunk.py
+    |   |   chunker.py
+    |   |   directory_loader.py
+    |   |   document.py
+    |   |   ingestion.py
+    |   |   loader.py
+    |   |   loader_registry.py
+    |   |   markdown_loader.py
+    |   |   repository.py
+    |   |   simple_chunker.py
+    |   |   store.py
+    |   |   txt_loader.py
+    |   |   vector_repository.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           chunk.cpython-314.pyc
+    |           chunker.cpython-314.pyc
+    |           directory_loader.cpython-314.pyc
+    |           document.cpython-314.pyc
+    |           ingestion.cpython-314.pyc
+    |           loader.cpython-314.pyc
+    |           loader_registry.cpython-314.pyc
+    |           markdown_loader.cpython-314.pyc
+    |           repository.cpython-314.pyc
+    |           simple_chunker.cpython-314.pyc
+    |           txt_loader.cpython-314.pyc
+    |           vector_repository.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---mcp
+    |       __init__.py
+    |       
+    +---memory
+    |   |   constants.py
+    |   |   in_memory_store.py
+    |   |   manager.py
+    |   |   qdrant_repository.py
+    |   |   qdrant_store.py
+    |   |   store.py
+    |   |   vector_memory_store.py
+    |   |   vector_repository.py
+    |   |   vector_store.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           constants.cpython-314.pyc
+    |           in_memory_store.cpython-314.pyc
+    |           manager.cpython-314.pyc
+    |           qdrant_repository.cpython-314.pyc
+    |           qdrant_store.cpython-314.pyc
+    |           store.cpython-314.pyc
+    |           vector_memory_store.cpython-314.pyc
+    |           vector_repository.cpython-314.pyc
+    |           vector_store.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---models
+    |   |   attachment.py
+    |   |   conversation.py
+    |   |   memory.py
+    |   |   message.py
+    |   |   model_info.py
+    |   |   prompt.py
+    |   |   provider_response.py
+    |   |   response.py
+    |   |   session.py
+    |   |   stream.py
+    |   |   tool.py
+    |   |   tool_call.py
+    |   |   tool_definition.py
+    |   |   usage.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           attachment.cpython-314.pyc
+    |           conversation.cpython-314.pyc
+    |           memory.cpython-314.pyc
+    |           message.cpython-314.pyc
+    |           model_info.cpython-314.pyc
+    |           prompt.cpython-314.pyc
+    |           provider_response.cpython-314.pyc
+    |           response.cpython-314.pyc
+    |           session.cpython-314.pyc
+    |           stream.cpython-314.pyc
+    |           tool.cpython-314.pyc
+    |           tool_call.cpython-314.pyc
+    |           tool_definition.cpython-314.pyc
+    |           usage.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---parsers
+    |   |   parser.py
+    |   |   text_parser.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           parser.cpython-314.pyc
+    |           text_parser.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---plugins
+    |       __init__.py
+    |       
+    +---providers
+    |   |   anthropic.py
+    |   |   base.py
+    |   |   client.py
+    |   |   exceptions.py
+    |   |   factory.py
+    |   |   gemini.py
+    |   |   groq.py
+    |   |   manager.py
+    |   |   nvidia.py
+    |   |   ollama.py
+    |   |   openai.py
+    |   |   openrouter.py
+    |   |   registry.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           anthropic.cpython-314.pyc
+    |           base.cpython-314.pyc
+    |           client.cpython-314.pyc
+    |           exceptions.cpython-314.pyc
+    |           factory.cpython-314.pyc
+    |           gemini.cpython-314.pyc
+    |           groq.cpython-314.pyc
+    |           manager.cpython-314.pyc
+    |           nvidia.cpython-314.pyc
+    |           ollama.cpython-314.pyc
+    |           openai.cpython-314.pyc
+    |           openrouter.cpython-314.pyc
+    |           registry.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---runtime
+    |   |   constants.py
+    |   |   context.py
+    |   |   context_assembler.py
+    |   |   context_builder.py
+    |   |   context_provider.py
+    |   |   conversation_provider.py
+    |   |   executor.py
+    |   |   knowledge_provider.py
+    |   |   memory_extractor.py
+    |   |   memory_filter.py
+    |   |   memory_pipeline.py
+    |   |   memory_provider.py
+    |   |   memory_scorer.py
+    |   |   prompt_builder.py
+    |   |   runtime_factory.py
+    |   |   tool_message_builder.py
+    |   |   tool_provider.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           constants.cpython-314.pyc
+    |           context.cpython-314.pyc
+    |           context_assembler.cpython-314.pyc
+    |           context_builder.cpython-314.pyc
+    |           context_provider.cpython-314.pyc
+    |           conversation_provider.cpython-314.pyc
+    |           executor.cpython-314.pyc
+    |           knowledge_provider.cpython-314.pyc
+    |           memory_extractor.cpython-314.pyc
+    |           memory_filter.cpython-314.pyc
+    |           memory_pipeline.cpython-314.pyc
+    |           memory_provider.cpython-314.pyc
+    |           memory_scorer.cpython-314.pyc
+    |           prompt_builder.cpython-314.pyc
+    |           runtime_factory.cpython-314.pyc
+    |           tool_message_builder.cpython-314.pyc
+    |           tool_provider.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---security
+    |   |   auth.py
+    |   |   permissions.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           auth.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---serialization
+    |   |   chunk_serializer.py
+    |   |   memory_serializer.py
+    |   |   message_serializer.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           chunk_serializer.cpython-314.pyc
+    |           memory_serializer.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---services
+    |   |   chat_service.py
+    |   |   container.py
+    |   |   conversation_service.py
+    |   |   registry.py
+    |   |   tool_calling_engine.py
+    |   |   tool_executor.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           chat_service.cpython-314.pyc
+    |           container.cpython-314.pyc
+    |           conversation_service.cpython-314.pyc
+    |           registry.cpython-314.pyc
+    |           tool_calling_engine.cpython-314.pyc
+    |           tool_executor.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---skills
+    |   |   base.py
+    |   |   builtin.py
+    |   |   calculator.py
+    |   |   filesystem.py
+    |   |   manager.py
+    |   |   registry.py
+    |   |   time.py
+    |   |   web_search.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           base.cpython-314.pyc
+    |           builtin.cpython-314.pyc
+    |           calculator.cpython-314.pyc
+    |           filesystem.cpython-314.pyc
+    |           manager.cpython-314.pyc
+    |           registry.cpython-314.pyc
+    |           time.cpython-314.pyc
+    |           web_search.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    +---utils
+    |       helpers.py
+    |       __init__.py
+    |       
+    +---workspace
+    |   |   workspace.py
+    |   |   __init__.py
+    |   |   
+    |   \---__pycache__
+    |           workspace.cpython-314.pyc
+    |           __init__.cpython-314.pyc
+    |           
+    \---__pycache__
+            application.cpython-314.pyc
+            chat.cpython-314.pyc
+            cli.cpython-314.pyc
+            main.cpython-314.pyc
+            __init__.cpython-314.pyc
+            
+
+=== TESTS ===
+Folder PATH listing for volume Windows
+Volume serial number is 000001F4 D0E0:F627
+C:\PROJECT\DOITALL\TESTS
+|   test_application.py
+|   test_deployment_config.py
+|   
++---agent
+|   |   test_agent.py
+|   |   test_agent_executor.py
+|   |   test_agent_manager.py
+|   |   test_agent_tool_loop.py
+|   |   
+|   \---__pycache__
+|           test_agent.cpython-314-pytest-9.1.1.pyc
+|           test_agent_executor.cpython-314-pytest-9.1.1.pyc
+|           test_agent_manager.cpython-314-pytest-9.1.1.pyc
+|           test_agent_tool_loop.cpython-314-pytest-9.1.1.pyc
+|           test_executor.cpython-314-pytest-9.1.1.pyc
+|           
++---api
+|   |   test_app_metrics.py
+|   |   test_health_routes.py
+|   |   test_models.py
+|   |   test_sessions_endpoints.py
+|   |   test_system_routes.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           test_app_metrics.cpython-314-pytest-9.1.1.pyc
+|           test_health_routes.cpython-314-pytest-9.1.1.pyc
+|           test_models.cpython-314-pytest-9.1.1.pyc
+|           test_sessions_endpoints.cpython-314-pytest-9.1.1.pyc
+|           test_system_routes.cpython-314-pytest-9.1.1.pyc
+|           __init__.cpython-314.pyc
+|           
++---commands
+|   |   test_command_registry.py
+|   |   test_executor.py
+|   |   test_registry.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           test_command_registry.cpython-314-pytest-9.1.1.pyc
+|           test_executor.cpython-314-pytest-9.1.1.pyc
+|           test_registry.cpython-314-pytest-9.1.1.pyc
+|           __init__.cpython-314.pyc
+|           
++---config
+|   |   test_settings.py
+|   |   
+|   \---__pycache__
+|           test_settings.cpython-314-pytest-9.1.1.pyc
+|           
++---core
+|   |   test_bootstrap.py
+|   |   
+|   \---__pycache__
+|           test_bootstrap.cpython-314-pytest-9.1.1.pyc
+|           
++---database
+|   |   test_migrations.py
+|   |   test_session_repository.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           test_migrations.cpython-314-pytest-9.1.1.pyc
+|           test_session_repository.cpython-314-pytest-9.1.1.pyc
+|           __init__.cpython-314.pyc
+|           
++---embeddings
+|   |   test_embedding_manager.py
+|   |   
+|   \---__pycache__
+|           test_embedding_manager.cpython-314-pytest-9.1.1.pyc
+|           
++---knowledge
+|   |   test_chunk.py
+|   |   test_directory_loader.py
+|   |   test_document.py
+|   |   test_ingestion.py
+|   |   test_loader_registry.py
+|   |   test_markdown_loader.py
+|   |   test_simple_chunker.py
+|   |   test_txt_loader.py
+|   |   test_vector_repository.py
+|   |   
+|   \---__pycache__
+|           test_chunk.cpython-314-pytest-9.1.1.pyc
+|           test_directory_loader.cpython-314-pytest-9.1.1.pyc
+|           test_document.cpython-314-pytest-9.1.1.pyc
+|           test_ingestion.cpython-314-pytest-9.1.1.pyc
+|           test_loader_registry.cpython-314-pytest-9.1.1.pyc
+|           test_markdown_loader.cpython-314-pytest-9.1.1.pyc
+|           test_simple_chunker.cpython-314-pytest-9.1.1.pyc
+|           test_txt_loader.cpython-314-pytest-9.1.1.pyc
+|           test_vector_repository.cpython-314-pytest-9.1.1.pyc
+|           
++---memory
+|   |   conftest.py
+|   |   test_in_memory_store.py
+|   |   test_manager.py
+|   |   test_qdrant_repository.py
+|   |   test_qdrant_store.py
+|   |   test_vector_memory_store.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           conftest.cpython-314-pytest-9.1.1.pyc
+|           test_in_memory_store.cpython-314-pytest-9.1.1.pyc
+|           test_manager.cpython-314-pytest-9.1.1.pyc
+|           test_qdrant_repository.cpython-314-pytest-9.1.1.pyc
+|           test_qdrant_store.cpython-314-pytest-9.1.1.pyc
+|           test_vector_memory_store.cpython-314-pytest-9.1.1.pyc
+|           __init__.cpython-314.pyc
+|           
++---models
+|   |   test_attachment.py
+|   |   test_conversation.py
+|   |   test_memory.py
+|   |   test_message.py
+|   |   test_model_info.py
+|   |   test_prompt.py
+|   |   test_provider_response.py
+|   |   test_response.py
+|   |   test_session.py
+|   |   test_tool.py
+|   |   test_tool_call.py
+|   |   
+|   \---__pycache__
+|           test_attachment.cpython-314-pytest-9.1.1.pyc
+|           test_conversation.cpython-314-pytest-9.1.1.pyc
+|           test_memory.cpython-314-pytest-9.1.1.pyc
+|           test_message.cpython-314-pytest-9.1.1.pyc
+|           test_model_info.cpython-314-pytest-9.1.1.pyc
+|           test_prompt.cpython-314-pytest-9.1.1.pyc
+|           test_provider_response.cpython-314-pytest-9.1.1.pyc
+|           test_response.cpython-314-pytest-9.1.1.pyc
+|           test_session.cpython-314-pytest-9.1.1.pyc
+|           test_tool.cpython-314-pytest-9.1.1.pyc
+|           test_tool_call.cpython-314-pytest-9.1.1.pyc
+|           
++---parsers
+|   |   test_text_parser.py
+|   |   
+|   \---__pycache__
+|           test_text_parser.cpython-314-pytest-9.1.1.pyc
+|           
++---providers
+|   |   test_anthropic.py
+|   |   test_base_provider.py
+|   |   test_factory.py
+|   |   test_gemini.py
+|   |   test_groq.py
+|   |   test_manager_fallback.py
+|   |   test_nvidia.py
+|   |   test_ollama.py
+|   |   test_openai.py
+|   |   test_openrouter.py
+|   |   test_provider_manager.py
+|   |   
+|   \---__pycache__
+|           test_anthropic.cpython-314-pytest-9.1.1.pyc
+|           test_base_provider.cpython-314-pytest-9.1.1.pyc
+|           test_factory.cpython-314-pytest-9.1.1.pyc
+|           test_gemini.cpython-314-pytest-9.1.1.pyc
+|           test_groq.cpython-314-pytest-9.1.1.pyc
+|           test_manager_fallback.cpython-314-pytest-9.1.1.pyc
+|           test_nvidia.cpython-314-pytest-9.1.1.pyc
+|           test_ollama.cpython-314-pytest-9.1.1.pyc
+|           test_openai.cpython-314-pytest-9.1.1.pyc
+|           test_openrouter.cpython-314-pytest-9.1.1.pyc
+|           test_provider_manager.cpython-314-pytest-9.1.1.pyc
+|           
++---runtime
+|   |   test_context.py
+|   |   test_context_assembler.py
+|   |   test_context_builder.py
+|   |   test_executor.py
+|   |   test_knowledge_provider.py
+|   |   test_memory_extractor.py
+|   |   test_memory_filter.py
+|   |   test_memory_pipeline.py
+|   |   test_memory_provider.py
+|   |   test_memory_scorer.py
+|   |   test_prompt_builder.py
+|   |   test_tool_message_builder.py
+|   |   test_tool_provider.py
+|   |   
+|   \---__pycache__
+|           test_context.cpython-314-pytest-9.1.1.pyc
+|           test_context_assembler.cpython-314-pytest-9.1.1.pyc
+|           test_context_builder.cpython-314-pytest-9.1.1.pyc
+|           test_executor.cpython-314-pytest-9.1.1.pyc
+|           test_knowledge_provider.cpython-314-pytest-9.1.1.pyc
+|           test_memory_extractor.cpython-314-pytest-9.1.1.pyc
+|           test_memory_filter.cpython-314-pytest-9.1.1.pyc
+|           test_memory_pipeline.cpython-314-pytest-9.1.1.pyc
+|           test_memory_provider.cpython-314-pytest-9.1.1.pyc
+|           test_memory_scorer.cpython-314-pytest-9.1.1.pyc
+|           test_prompt_builder.cpython-314-pytest-9.1.1.pyc
+|           test_tool_message_builder.cpython-314-pytest-9.1.1.pyc
+|           test_tool_provider.cpython-314-pytest-9.1.1.pyc
+|           
++---serialization
+|   |   test_chunk_serializer.py
+|   |   test_memory_serializer.py
+|   |   
+|   \---__pycache__
+|           test_chunk_serializer.cpython-314-pytest-9.1.1.pyc
+|           test_memory_serializer.cpython-314-pytest-9.1.1.pyc
+|           
++---services
+|   |   test_chat_service.py
+|   |   test_container.py
+|   |   test_conversation_service.py
+|   |   test_tool_calling_engine.py
+|   |   test_tool_executor.py
+|   |   
+|   \---__pycache__
+|           test_chat_service.cpython-314-pytest-9.1.1.pyc
+|           test_container.cpython-314-pytest-9.1.1.pyc
+|           test_conversation_service.cpython-314-pytest-9.1.1.pyc
+|           test_tool_calling_engine.cpython-314-pytest-9.1.1.pyc
+|           test_tool_executor.cpython-314-pytest-9.1.1.pyc
+|           
++---skills
+|   |   test_base_skill.py
+|   |   test_calculator_skill.py
+|   |   test_definitions.py
+|   |   test_filesystem_skill.py
+|   |   test_registry.py
+|   |   test_skill_manager.py
+|   |   test_skill_metadata.py
+|   |   test_time_skill.py
+|   |   test_web_search_skill.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           test_base_skill.cpython-314-pytest-9.1.1.pyc
+|           test_calculator_skill.cpython-314-pytest-9.1.1.pyc
+|           test_definitions.cpython-314-pytest-9.1.1.pyc
+|           test_filesystem_skill.cpython-314-pytest-9.1.1.pyc
+|           test_registry.cpython-314-pytest-9.1.1.pyc
+|           test_skill_manager.cpython-314-pytest-9.1.1.pyc
+|           test_skill_metadata.cpython-314-pytest-9.1.1.pyc
+|           test_time_skill.cpython-314-pytest-9.1.1.pyc
+|           test_web_search_skill.cpython-314-pytest-9.1.1.pyc
+|           __init__.cpython-314.pyc
+|           
++---workspace
+|   |   test_workspace.py
+|   |   
+|   \---__pycache__
+|           test_workspace.cpython-314-pytest-9.1.1.pyc
+|           
+\---__pycache__
+        test_application.cpython-314-pytest-9.1.1.pyc
+        test_deployment_config.cpython-314-pytest-9.1.1.pyc
+        

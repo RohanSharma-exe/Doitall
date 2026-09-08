@@ -2,10 +2,9 @@
 
 from doitall.agent.agent import Agent
 from doitall.agent.executor import AgentExecutor
-from doitall.agent.manager import AgentManager
 from doitall.knowledge.repository import KnowledgeRepository
 from doitall.memory.manager import MemoryManager
-from doitall.memory.vector_memory_store import VectorMemoryStore
+from doitall.memory.store import MemoryStore
 from doitall.providers.manager import ProviderManager
 from doitall.runtime.context_assembler import ContextAssembler
 from doitall.runtime.conversation_provider import ConversationProvider
@@ -23,7 +22,6 @@ from doitall.services.chat_service import ChatService
 from doitall.services.conversation_service import ConversationService
 from doitall.services.registry import container
 from doitall.services.tool_calling_engine import ToolCallingEngine
-from doitall.services.tool_executor import ToolExecutor
 from doitall.skills.manager import SkillManager
 
 
@@ -40,22 +38,20 @@ class RuntimeFactory:
         provider_manager: ProviderManager = container.resolve("provider_manager")
         skill_manager: SkillManager = container.resolve("skill_manager")
         skill_registry = container.resolve("skill_registry")
-        vector_memory_store: VectorMemoryStore = container.resolve("memory_store")
+        memory_store: MemoryStore = container.resolve("memory_store")
         knowledge_repository: KnowledgeRepository = container.resolve(
             "knowledge_repository"
         )
 
-        memory_manager = MemoryManager(vector_memory_store)
+        memory_manager = MemoryManager(memory_store)
 
         # Use the provided conversation_service (DB-backed) or create a
         # fresh in-memory one for one-shot / test usage.
         conversation = conversation_service or ConversationService()
 
-        agent_manager = AgentManager(agent)
-        prompt_builder = PromptBuilder(agent_manager)
+        prompt_builder = PromptBuilder(agent)
         runtime = RuntimeExecutor(prompt_builder, provider_manager)
-        tool_executor = ToolExecutor(skill_manager)
-        tool_engine = ToolCallingEngine(tool_executor)
+        tool_engine = ToolCallingEngine(skill_manager)
         tool_message_builder = ToolMessageBuilder()
 
         context_assembler = ContextAssembler(
@@ -82,3 +78,4 @@ class RuntimeFactory:
             agent_executor=executor,
             memory_pipeline=memory_pipeline,
         )
+

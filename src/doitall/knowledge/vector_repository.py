@@ -3,7 +3,7 @@
 from typing import Any
 
 from doitall.core.exceptions import ProviderError
-from doitall.embeddings.manager import EmbeddingManager
+from doitall.embeddings.service import EmbeddingService
 from doitall.knowledge.chunker import DocumentChunker
 from doitall.knowledge.document import Document
 from doitall.knowledge.repository import KnowledgeRepository
@@ -17,7 +17,7 @@ class VectorKnowledgeRepository(KnowledgeRepository):
     def __init__(
         self,
         chunker: DocumentChunker,
-        embedding_manager: EmbeddingManager,
+        embedding_manager: EmbeddingService,
         vector_store: VectorStore,
     ) -> None:
         """Initialize repository with chunker, embedding manager, and vector store dependencies."""
@@ -135,6 +135,23 @@ class VectorKnowledgeRepository(KnowledgeRepository):
 
         paged = order[offset : offset + limit]
         return [seen[doc_id] for doc_id in paged]
+
+    async def get_document(self, document_id: str) -> dict[str, Any] | None:
+        """Return a single document summary by document_id, or None if not found.
+
+        Delegates to the vector store's filtered lookup so only the matching
+        document's chunks are retrieved — the full collection is not scanned.
+        """
+        points = await self.vector_store.get_by_document_id(document_id)
+        if not points:
+            return None
+        payload = (points[0].get("payload") or {})
+        return {
+            "document_id": document_id,
+            "title": payload.get("metadata", {}).get("title"),
+            "chunk_count": len(points),
+            "metadata": payload.get("metadata", {}),
+        }
 
     async def clear(self) -> None:
         """Clear all indexed document chunks from vector store."""

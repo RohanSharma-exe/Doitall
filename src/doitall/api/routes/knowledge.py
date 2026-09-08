@@ -132,20 +132,20 @@ async def get_document(document_id: str) -> KnowledgeDocument:
     """Return metadata and chunk count for a single indexed document."""
     try:
         repo = _resolve_repo()
-        summaries = await repo.list_documents(limit=10000, offset=0)
+        summary = await repo.get_document(document_id)
     except Exception as exc:
         logger.exception("Knowledge detail failed")
         raise HTTPException(status_code=500, detail=_LIST_FAILED) from exc
 
-    for s in summaries:
-        if s["document_id"] == document_id:
-            return KnowledgeDocument(
-                document_id=s["document_id"],
-                title=s.get("title"),
-                chunk_count=s["chunk_count"],
-                metadata=s.get("metadata", {}),
-            )
-    raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if summary is None:
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
+
+    return KnowledgeDocument(
+        document_id=summary["document_id"],
+        title=summary.get("title"),
+        chunk_count=summary["chunk_count"],
+        metadata=summary.get("metadata", {}),
+    )
 
 
 # ---------------------------------------------------------------------------

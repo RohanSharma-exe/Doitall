@@ -1,21 +1,27 @@
 """Qdrant vector repository implementation module."""
 
-from doitall.embeddings.manager import EmbeddingManager
+from doitall.embeddings.service import EmbeddingService
+from doitall.memory.store import MemoryStore
 from doitall.memory.vector_repository import VectorRepository
 from doitall.memory.vector_store import VectorStore
 from doitall.models.memory import Memory
 from doitall.serialization.memory_serializer import MemorySerializer
 
 
-class QdrantRepository(VectorRepository):
-    """Repository connecting Memory models to Qdrant vector store and embedding manager."""
+class QdrantRepository(VectorRepository, MemoryStore):
+    """Repository connecting Memory models to Qdrant vector store and embedding service.
+
+    Implements both ``VectorRepository`` (full CRUD) and ``MemoryStore`` (the
+    interface consumed by ``MemoryManager``) so callers can inject this class
+    directly without a wrapper adapter.
+    """
 
     def __init__(
         self,
         vector_store: VectorStore,
-        embedding_manager: EmbeddingManager,
+        embedding_manager: EmbeddingService,
     ) -> None:
-        """Initialize repository with vector store and embedding manager."""
+        """Initialize repository with vector store and embedding service."""
         self.vector_store = vector_store
         self.embedding_manager = embedding_manager
 
@@ -37,6 +43,10 @@ class QdrantRepository(VectorRepository):
             vector=vector,
             payload=payload,
         )
+
+    async def add(self, memory: Memory) -> None:
+        """MemoryStore interface — delegates to save()."""
+        await self.save(memory)
 
     async def get_all(self, limit: int = 10000) -> list[Memory]:
         """Return all stored memories using scroll (no embedding needed)."""
@@ -84,3 +94,4 @@ class QdrantRepository(VectorRepository):
     async def count(self) -> int:
         """Return count of stored memory points in Qdrant."""
         return await self.vector_store.count()
+

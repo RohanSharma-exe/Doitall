@@ -33,9 +33,6 @@ class MemoryFilter:
         if len(content) > self.max_length:
             return False
 
-        if not content:
-            return False
-
         content_normalized = content.lower().strip()
         if content_normalized in self._seen_contents:
             return False

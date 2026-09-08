@@ -1,1 +1,0 @@
-"""Application plugin extension package."""

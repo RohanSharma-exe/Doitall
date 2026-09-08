@@ -19,7 +19,6 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-ai>=2.18.0",
     "pydantic-settings>=2.14.2",
-    "python-dotenv>=1.2.2",
     "qdrant-client>=1.18.0",
     "rich>=15.0.0",
     "sqlalchemy>=2.0.51",

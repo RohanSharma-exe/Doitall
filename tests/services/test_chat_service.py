@@ -16,7 +16,7 @@ class FakeContextAssembler(ContextAssembler):
     def __init__(self, conversation: ConversationService) -> None:
         self._conversation = conversation
 
-    async def assemble(self, query: str) -> RuntimeContext:
+    async def assemble(self, query: str, **kwargs: object) -> RuntimeContext:
         return RuntimeContext(
             messages=self._conversation.messages(),
         )
@@ -98,12 +98,12 @@ class ToolContextAssembler(ContextAssembler):
     def __init__(self, conversation: ConversationService) -> None:
         self._conversation = conversation
 
-    async def assemble(self, query: str, provider: str | None = None) -> RuntimeContext:
+    async def assemble(self, query: str, **kwargs: object) -> RuntimeContext:
         from doitall.models.tool_definition import ToolDefinition
 
         return RuntimeContext(
             messages=self._conversation.messages(),
-            provider=provider,
+            provider=kwargs.get("provider"),
             tools=[
                 ToolDefinition(
                     name="calculator",

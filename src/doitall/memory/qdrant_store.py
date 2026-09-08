@@ -1,7 +1,14 @@
 from typing import Any
 
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 
 from doitall.config.settings import settings
 from doitall.memory.constants import (
@@ -116,6 +123,37 @@ class QdrantStore(VectorStore):
         points, _next = await self.client.scroll(
             collection_name=self.collection_name,
             limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        return [
+            {
+                "id": str(point.id),
+                "payload": point.payload,
+            }
+            for point in points
+        ]
+
+    async def get_by_document_id(
+        self,
+        document_id: str,
+    ) -> list[dict[str, Any]]:
+        """Return all points whose payload ``document_id`` matches the given value.
+
+        Uses a Qdrant server-side payload filter so only matching points are
+        transferred — the entire collection is never scanned client-side.
+        """
+        points, _next = await self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            ),
+            limit=10000,
             with_payload=True,
             with_vectors=False,
         )

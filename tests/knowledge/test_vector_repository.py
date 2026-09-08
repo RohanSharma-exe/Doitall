@@ -16,6 +16,7 @@ def _make_async_vector_store() -> Mock:
     store.upsert_many = AsyncMock()
     store.search = AsyncMock(return_value=[])
     store.scroll_all = AsyncMock(return_value=[])
+    store.get_by_document_id = AsyncMock(return_value=[])
     store.delete = AsyncMock()
     store.count = AsyncMock(return_value=0)
     store.clear = AsyncMock()
@@ -236,3 +237,89 @@ async def test_retry_after_batch_failure_reuses_the_same_chunk_ids():
     second_batch = vector_store.upsert_many.await_args_list[1].args[0]
     assert [point[0] for point in first_batch] == [point[0] for point in second_batch]
     assert len({point[0] for point in first_batch}) == 2
+
+
+# ---------------------------------------------------------------------------
+# get_document — BUG-001
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_document_existing():
+    """get_document returns the expected summary dict for a known document."""
+    vector_store = _make_async_vector_store()
+    vector_store.get_by_document_id = AsyncMock(
+        return_value=[
+            {"id": "chunk-1", "payload": {"document_id": "doc-abc", "metadata": {"title": "My Doc"}}},
+            {"id": "chunk-2", "payload": {"document_id": "doc-abc", "metadata": {"title": "My Doc"}}},
+        ]
+    )
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    result = await repository.get_document("doc-abc")
+
+    assert result is not None
+    assert result["document_id"] == "doc-abc"
+    assert result["title"] == "My Doc"
+    assert result["chunk_count"] == 2
+    assert result["metadata"] == {"title": "My Doc"}
+
+
+@pytest.mark.asyncio
+async def test_get_document_missing():
+    """get_document returns None when the document does not exist."""
+    vector_store = _make_async_vector_store()
+    vector_store.get_by_document_id = AsyncMock(return_value=[])
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    result = await repository.get_document("does-not-exist")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_document_uses_get_by_document_id():
+    """get_document delegates to vector_store.get_by_document_id, not scroll_all."""
+    vector_store = _make_async_vector_store()
+    vector_store.get_by_document_id = AsyncMock(
+        return_value=[
+            {"id": "chunk-1", "payload": {"document_id": "doc-xyz", "metadata": {}}},
+        ]
+    )
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    await repository.get_document("doc-xyz")
+
+    vector_store.get_by_document_id.assert_awaited_once_with("doc-xyz")
+
+
+@pytest.mark.asyncio
+async def test_get_document_does_not_call_scroll_all():
+    """A single-document lookup must not trigger a full collection scan."""
+    vector_store = _make_async_vector_store()
+    vector_store.get_by_document_id = AsyncMock(return_value=[])
+
+    repository = VectorKnowledgeRepository(
+        chunker=Mock(),
+        embedding_manager=Mock(),
+        vector_store=vector_store,
+    )
+
+    await repository.get_document("any-id")
+
+    vector_store.scroll_all.assert_not_awaited()

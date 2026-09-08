@@ -40,6 +40,13 @@ class KnowledgeRepository(ABC):
         """Return a paged list of document summaries (id, title, chunk_count, metadata)."""
 
     @abstractmethod
+    async def get_document(
+        self,
+        document_id: str,
+    ) -> dict[str, Any] | None:
+        """Return a single document summary (id, title, chunk_count, metadata) or None if not found."""
+
+    @abstractmethod
     async def clear(self) -> None:
         """Delete all indexed documents."""
 

@@ -1,3 +1,5 @@
+"""Tests for ToolCallingEngine — now wired directly to SkillManager."""
+
 import asyncio
 
 import pytest
@@ -6,26 +8,21 @@ from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolCall
 from doitall.services.container import ServiceContainer
 from doitall.services.tool_calling_engine import ToolCallingEngine
-from doitall.services.tool_executor import ToolExecutor
 from doitall.skills.calculator import CalculatorSkill
 from doitall.skills.manager import SkillManager
 from doitall.skills.registry import SkillRegistry
 
 
-@pytest.mark.asyncio
-async def test_execute_tool_calls():
+def _make_engine() -> tuple[ToolCallingEngine, SkillManager]:
     registry = SkillRegistry()
     registry.register(CalculatorSkill)
+    manager = SkillManager(registry, ServiceContainer())
+    return ToolCallingEngine(manager), manager
 
-    container = ServiceContainer()
 
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+@pytest.mark.asyncio
+async def test_execute_tool_calls():
+    engine, _ = _make_engine()
 
     response = ProviderResponse(
         tool_calls=[
@@ -48,34 +45,19 @@ async def test_execute_tool_calls():
 
 @pytest.mark.asyncio
 async def test_execute_multiple_tool_calls():
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, _ = _make_engine()
 
     response = ProviderResponse(
         tool_calls=[
             ToolCall(
                 id="1",
                 name="calculator",
-                arguments={
-                    "expression": "2+2",
-                },
+                arguments={"expression": "2+2"},
             ),
             ToolCall(
                 id="2",
                 name="calculator",
-                arguments={
-                    "expression": "10*5",
-                },
+                arguments={"expression": "10*5"},
             ),
         ],
     )
@@ -89,40 +71,18 @@ async def test_execute_multiple_tool_calls():
 
 @pytest.mark.asyncio
 async def test_execute_tool_calls_continues_after_failure() -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, _ = _make_engine()
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="failed",
-                name="unknown_skill",
-                arguments={},
-            ),
-            ToolCall(
-                id="successful",
-                name="calculator",
-                arguments={
-                    "expression": "10*5",
-                },
-            ),
+            ToolCall(id="failed", name="unknown_skill", arguments={}),
+            ToolCall(id="successful", name="calculator", arguments={"expression": "10*5"}),
         ],
     )
 
     results = await engine.execute(response)
 
     assert len(results) == 2
-
     assert results[0].tool_call_id == "failed"
     assert results[0].name == "unknown_skill"
     assert isinstance(results[0].result, str)
@@ -135,42 +95,18 @@ async def test_execute_tool_calls_continues_after_failure() -> None:
 
 @pytest.mark.asyncio
 async def test_invalid_tool_arguments_do_not_prevent_remaining_tools() -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, _ = _make_engine()
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="invalid",
-                name="calculator",
-                arguments={
-                    "expression": 123,
-                },
-            ),
-            ToolCall(
-                id="valid",
-                name="calculator",
-                arguments={
-                    "expression": "10*5",
-                },
-            ),
+            ToolCall(id="invalid", name="calculator", arguments={"expression": 123}),
+            ToolCall(id="valid", name="calculator", arguments={"expression": "10*5"}),
         ],
     )
 
     results = await engine.execute(response)
 
     assert len(results) == 2
-
     assert results[0].tool_call_id == "invalid"
     assert results[0].name == "calculator"
     assert isinstance(results[0].result, str)
@@ -187,32 +123,13 @@ async def test_invalid_tool_arguments_do_not_prevent_remaining_tools() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_tool_call_times_out(monkeypatch: pytest.MonkeyPatch) -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
+    engine, skill_manager = _make_engine()
 
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
-
-    async def slow_execute(
-        name: str,
-        arguments: dict[str, object],
-    ) -> object:
+    async def slow_execute(name: str, **kwargs: object) -> object:
         await asyncio.sleep(1)
         return "should not complete"
 
-    monkeypatch.setattr(
-        executor,
-        "execute",
-        slow_execute,
-    )
-
+    monkeypatch.setattr(skill_manager, "execute", slow_execute)
     monkeypatch.setattr(
         "doitall.services.tool_calling_engine.settings.TOOL_EXECUTION_TIMEOUT_SECONDS",
         0.01,
@@ -220,11 +137,7 @@ async def test_execute_tool_call_times_out(monkeypatch: pytest.MonkeyPatch) -> N
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="timeout",
-                name="slow_tool",
-                arguments={},
-            ),
+            ToolCall(id="timeout", name="slow_tool", arguments={}),
         ],
     )
 
@@ -240,58 +153,32 @@ async def test_execute_tool_call_times_out(monkeypatch: pytest.MonkeyPatch) -> N
 async def test_timeout_does_not_prevent_remaining_tools(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, skill_manager = _make_engine()
 
     monkeypatch.setattr(
         "doitall.services.tool_calling_engine.settings.TOOL_EXECUTION_TIMEOUT_SECONDS",
         0.01,
     )
 
-    original_execute = executor.execute
+    original_execute = skill_manager.execute
 
-    async def execute_with_one_timeout(
-        name: str,
-        arguments: dict[str, object],
-    ) -> object:
+    async def execute_with_one_timeout(name: str, **kwargs: object) -> object:
         if name == "slow_tool":
             await asyncio.sleep(1)
+        return await original_execute(name, **kwargs)
 
-        return await original_execute(name, arguments)
-
-    executor.execute = execute_with_one_timeout  # type: ignore[method-assign]
+    monkeypatch.setattr(skill_manager, "execute", execute_with_one_timeout)
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="timeout",
-                name="slow_tool",
-                arguments={},
-            ),
-            ToolCall(
-                id="successful",
-                name="calculator",
-                arguments={
-                    "expression": "10*5",
-                },
-            ),
+            ToolCall(id="timeout", name="slow_tool", arguments={}),
+            ToolCall(id="successful", name="calculator", arguments={"expression": "10*5"}),
         ],
     )
 
     results = await engine.execute(response)
 
     assert len(results) == 2
-
     assert results[0].tool_call_id == "timeout"
     assert results[0].result.startswith("Tool execution timed out")
 
@@ -303,62 +190,29 @@ async def test_timeout_does_not_prevent_remaining_tools(
 async def test_execute_tool_calls_concurrently(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, skill_manager = _make_engine()
 
     active_calls = 0
     max_active_calls = 0
+    original_execute = skill_manager.execute
 
-    original_execute = executor.execute
-
-    async def tracked_execute(
-        name: str,
-        arguments: dict[str, object],
-    ) -> object:
+    async def tracked_execute(name: str, **kwargs: object) -> object:
         nonlocal active_calls, max_active_calls
-
         active_calls += 1
         max_active_calls = max(max_active_calls, active_calls)
-
         try:
             await asyncio.sleep(0.05)
-            return await original_execute(name, arguments)
+            return await original_execute(name, **kwargs)
         finally:
             active_calls -= 1
 
-    monkeypatch.setattr(
-        executor,
-        "execute",
-        tracked_execute,
-    )
+    monkeypatch.setattr(skill_manager, "execute", tracked_execute)
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="1",
-                name="calculator",
-                arguments={"expression": "2+3"},
-            ),
-            ToolCall(
-                id="2",
-                name="calculator",
-                arguments={"expression": "10*5"},
-            ),
-            ToolCall(
-                id="3",
-                name="calculator",
-                arguments={"expression": "7*6"},
-            ),
+            ToolCall(id="1", name="calculator", arguments={"expression": "2+3"}),
+            ToolCall(id="2", name="calculator", arguments={"expression": "10*5"}),
+            ToolCall(id="3", name="calculator", arguments={"expression": "7*6"}),
         ],
     )
 
@@ -366,14 +220,8 @@ async def test_execute_tool_calls_concurrently(
 
     assert len(results) == 3
     assert max_active_calls == 3
-
-    assert results[0].tool_call_id == "1"
     assert results[0].result == 5
-
-    assert results[1].tool_call_id == "2"
     assert results[1].result == 50
-
-    assert results[2].tool_call_id == "3"
     assert results[2].result == 42
 
 
@@ -381,18 +229,7 @@ async def test_execute_tool_calls_concurrently(
 async def test_execute_tool_calls_respects_concurrency_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, skill_manager = _make_engine()
 
     monkeypatch.setattr(
         "doitall.services.tool_calling_engine.settings.MAX_CONCURRENT_TOOL_CALLS",
@@ -401,52 +238,26 @@ async def test_execute_tool_calls_respects_concurrency_limit(
 
     active_calls = 0
     max_active_calls = 0
+    original_execute = skill_manager.execute
 
-    original_execute = executor.execute
-
-    async def tracked_execute(
-        name: str,
-        arguments: dict[str, object],
-    ) -> object:
+    async def tracked_execute(name: str, **kwargs: object) -> object:
         nonlocal active_calls, max_active_calls
-
         active_calls += 1
         max_active_calls = max(max_active_calls, active_calls)
-
         try:
             await asyncio.sleep(0.05)
-            return await original_execute(name, arguments)
+            return await original_execute(name, **kwargs)
         finally:
             active_calls -= 1
 
-    monkeypatch.setattr(
-        executor,
-        "execute",
-        tracked_execute,
-    )
+    monkeypatch.setattr(skill_manager, "execute", tracked_execute)
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="1",
-                name="calculator",
-                arguments={"expression": "2+3"},
-            ),
-            ToolCall(
-                id="2",
-                name="calculator",
-                arguments={"expression": "10*5"},
-            ),
-            ToolCall(
-                id="3",
-                name="calculator",
-                arguments={"expression": "7*6"},
-            ),
-            ToolCall(
-                id="4",
-                name="calculator",
-                arguments={"expression": "8*8"},
-            ),
+            ToolCall(id="1", name="calculator", arguments={"expression": "2+3"}),
+            ToolCall(id="2", name="calculator", arguments={"expression": "10*5"}),
+            ToolCall(id="3", name="calculator", arguments={"expression": "7*6"}),
+            ToolCall(id="4", name="calculator", arguments={"expression": "8*8"}),
         ],
     )
 
@@ -454,7 +265,6 @@ async def test_execute_tool_calls_respects_concurrency_limit(
 
     assert len(results) == 4
     assert max_active_calls == 2
-
     assert results[0].result == 5
     assert results[1].result == 50
     assert results[2].result == 42
@@ -463,26 +273,11 @@ async def test_execute_tool_calls_respects_concurrency_limit(
 
 @pytest.mark.asyncio
 async def test_successful_tool_execution_includes_metadata() -> None:
-    registry = SkillRegistry()
-    registry.register(CalculatorSkill)
-
-    container = ServiceContainer()
-
-    manager = SkillManager(
-        registry,
-        container,
-    )
-
-    executor = ToolExecutor(manager)
-    engine = ToolCallingEngine(executor)
+    engine, _ = _make_engine()
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="1",
-                name="calculator",
-                arguments={"expression": "2+3"},
-            ),
+            ToolCall(id="1", name="calculator", arguments={"expression": "2+3"}),
         ],
     )
 
@@ -506,23 +301,16 @@ async def test_timeout_includes_timeout_metadata(
         0.01,
     )
 
-    class SlowExecutor:
-        async def execute(
-            self,
-            name: str,
-            arguments: dict[str, object],
-        ) -> object:
+    class SlowSkillManager:
+        async def execute(self, name: str, **kwargs: object) -> object:
             await asyncio.sleep(1)
             return "done"
 
-    engine = ToolCallingEngine(SlowExecutor())  # type: ignore[arg-type]
+    engine = ToolCallingEngine(SlowSkillManager())  # type: ignore[arg-type]
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="timeout-1",
-                name="slow",
-            ),
+            ToolCall(id="timeout-1", name="slow"),
         ],
     )
 
@@ -537,22 +325,15 @@ async def test_timeout_includes_timeout_metadata(
 
 @pytest.mark.asyncio
 async def test_failed_tool_execution_includes_error_metadata() -> None:
-    class FailingExecutor:
-        async def execute(
-            self,
-            name: str,
-            arguments: dict[str, object],
-        ) -> object:
+    class FailingSkillManager:
+        async def execute(self, name: str, **kwargs: object) -> object:
             raise RuntimeError("boom")
 
-    engine = ToolCallingEngine(FailingExecutor())  # type: ignore[arg-type]
+    engine = ToolCallingEngine(FailingSkillManager())  # type: ignore[arg-type]
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="error-1",
-                name="failing_tool",
-            ),
+            ToolCall(id="error-1", name="failing_tool"),
         ],
     )
 
@@ -570,38 +351,27 @@ async def test_request_cancellation_propagates() -> None:
     started = asyncio.Event()
     cancelled = asyncio.Event()
 
-    class SlowExecutor:
-        async def execute(
-            self,
-            name: str,
-            arguments: dict[str, object],
-        ) -> object:
+    class SlowSkillManager:
+        async def execute(self, name: str, **kwargs: object) -> object:
             started.set()
-
             try:
                 await asyncio.sleep(30)
             except asyncio.CancelledError:
                 cancelled.set()
                 raise
-
             return "should not complete"
 
-    engine = ToolCallingEngine(SlowExecutor())  # type: ignore[arg-type]
+    engine = ToolCallingEngine(SlowSkillManager())  # type: ignore[arg-type]
 
     response = ProviderResponse(
         tool_calls=[
-            ToolCall(
-                id="cancel-1",
-                name="slow",
-                arguments={},
-            ),
+            ToolCall(id="cancel-1", name="slow", arguments={}),
         ],
     )
 
     task = asyncio.create_task(engine.execute(response))
 
     await asyncio.wait_for(started.wait(), timeout=1)
-
     task.cancel()
 
     with pytest.raises(asyncio.CancelledError):

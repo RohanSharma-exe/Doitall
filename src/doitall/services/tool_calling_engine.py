@@ -12,7 +12,7 @@ from doitall.models.tool_call import (
     ToolExecutionMetadata,
     ToolResult,
 )
-from doitall.services.tool_executor import ToolExecutor
+from doitall.skills.manager import SkillManager
 
 
 class ToolCallingEngine:
@@ -20,10 +20,10 @@ class ToolCallingEngine:
 
     def __init__(
         self,
-        executor: ToolExecutor,
+        skill_manager: SkillManager,
     ) -> None:
         """Initialize the tool calling engine."""
-        self._executor = executor
+        self._skill_manager = skill_manager
 
     async def execute(
         self,
@@ -71,9 +71,9 @@ class ToolCallingEngine:
 
         try:
             value = await asyncio.wait_for(
-                self._executor.execute(
+                self._skill_manager.execute(
                     call.name,
-                    call.arguments,
+                    **call.arguments,
                 ),
                 timeout=settings.TOOL_EXECUTION_TIMEOUT_SECONDS,
             )

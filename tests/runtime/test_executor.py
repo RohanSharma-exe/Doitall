@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from doitall.agent.agent import Agent
-from doitall.agent.manager import AgentManager
 from doitall.models.message import ToolMessage, UserMessage
 from doitall.models.provider_response import ProviderResponse
 from doitall.models.tool_call import ToolExecutionMetadata
@@ -31,11 +30,9 @@ def create_executor():
     provider_manager.fallback_candidates.return_value = [ProviderCandidate(provider)]
 
     builder = PromptBuilder(
-        AgentManager(
-            Agent(
-                name="Assistant",
-                system_prompt="System",
-            )
+        Agent(
+            name="Assistant",
+            system_prompt="System",
         )
     )
 
@@ -175,7 +172,7 @@ async def test_execute_falls_back_to_next_provider():
     manager.register(second_provider)
 
     builder = PromptBuilder(
-        AgentManager(Agent(name="Assistant", system_prompt="System"))
+        Agent(name="Assistant", system_prompt="System")
     )
     executor = RuntimeExecutor(builder, manager)
 
@@ -200,9 +197,7 @@ async def test_execute_pins_explicit_provider_without_fallback():
     manager.register(default_provider, default=True)
     manager.register(override_provider)
 
-    builder = PromptBuilder(
-        AgentManager(Agent(name="Assistant", system_prompt="System"))
-    )
+    builder = PromptBuilder(Agent(name="Assistant", system_prompt="System"))
     executor = RuntimeExecutor(builder, manager)
 
     with pytest.raises(ProviderUnavailableError, match="override failed"):
@@ -263,7 +258,7 @@ async def test_execute_does_not_fail_over_non_retryable_errors(
     manager.register(first_provider, default=True)
     manager.register(second_provider)
     executor = RuntimeExecutor(
-        PromptBuilder(AgentManager(Agent(name="Assistant", system_prompt="System"))),
+        PromptBuilder(Agent(name="Assistant", system_prompt="System")),
         manager,
     )
 
@@ -280,7 +275,7 @@ async def test_execute_rejects_unknown_explicit_provider():
     manager = ProviderManager()
     manager.register(provider, default=True)
     executor = RuntimeExecutor(
-        PromptBuilder(AgentManager(Agent(name="Assistant", system_prompt="System"))),
+        PromptBuilder(Agent(name="Assistant", system_prompt="System")),
         manager,
     )
 
@@ -325,7 +320,7 @@ async def test_stream_fails_over_before_output():
     manager.register(first_provider, default=True)
     manager.register(second_provider)
     executor = RuntimeExecutor(
-        PromptBuilder(AgentManager(Agent(name="Assistant", system_prompt="System"))),
+        PromptBuilder(Agent(name="Assistant", system_prompt="System")),
         manager,
     )
 
@@ -346,7 +341,7 @@ async def test_stream_does_not_fail_over_after_output():
     manager.register(first_provider, default=True)
     manager.register(second_provider)
     executor = RuntimeExecutor(
-        PromptBuilder(AgentManager(Agent(name="Assistant", system_prompt="System"))),
+        PromptBuilder(Agent(name="Assistant", system_prompt="System")),
         manager,
     )
 

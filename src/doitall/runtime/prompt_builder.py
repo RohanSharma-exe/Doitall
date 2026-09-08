@@ -1,6 +1,6 @@
 """Prompt builder module combining system instructions, memories, knowledge, and history."""
 
-from doitall.agent.manager import AgentManager
+from doitall.agent.agent import Agent
 from doitall.models.message import Message, SystemMessage
 from doitall.runtime.constants import (
     KNOWLEDGE_HEADER,
@@ -19,12 +19,12 @@ class PromptBuilder:
 
     def __init__(
         self,
-        agent: AgentManager,
+        agent: Agent,
     ) -> None:
         """Initialize the prompt builder.
 
         Args:
-            agent: The agent manager containing system prompt configuration.
+            agent: The agent containing system prompt configuration.
         """
         self._agent = agent
 

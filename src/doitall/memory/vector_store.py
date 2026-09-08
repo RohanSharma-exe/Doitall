@@ -43,6 +43,18 @@ class VectorStore(ABC):
         """
 
     @abstractmethod
+    async def get_by_document_id(
+        self,
+        document_id: str,
+    ) -> list[dict[str, Any]]:
+        """Return all stored points whose payload ``document_id`` equals *document_id*.
+
+        Implementations must perform a filtered lookup rather than scanning the
+        entire collection.  The return format matches ``scroll_all``:
+        ``[{"id": str, "payload": dict}, ...]``.
+        """
+
+    @abstractmethod
     async def delete(
         self,
         point_id: str,

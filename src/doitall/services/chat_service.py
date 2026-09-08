@@ -101,22 +101,11 @@ class ChatService:
             user_message,
         )
 
-        if provider:
-            context = await self._context_assembler.assemble(
-                content,
-                provider=provider,
-                model=model,
-            )
-        else:
-            if model:
-                context = await self._context_assembler.assemble(
-                    content,
-                    model=model,
-                )
-            else:
-                context = await self._context_assembler.assemble(
-                    content,
-                )
+        context = await self._context_assembler.assemble(
+            content,
+            provider=provider,
+            model=model,
+        )
 
         original_context_length = len(context.messages)
 

@@ -39,7 +39,6 @@ class Doitall:
             skill_manager,
             self._chat_service._conversation_service,
         )
-        self._is_running = False
 
     async def stream_chat(
         self,
@@ -69,22 +68,6 @@ class Doitall:
 
         return await self._chat_service.chat(message)
 
-    def start(self) -> None:
-        """Start the application."""
-        if self._is_running:
-            return
-
-        self._is_running = True
-
     async def stop(self) -> None:
         """Stop the application and clean up resources."""
-        if not self._is_running:
-            return
-
-        self._is_running = False
         await cleanup()
-
-    @property
-    def is_running(self) -> bool:
-        """Check if the application is running."""
-        return self._is_running

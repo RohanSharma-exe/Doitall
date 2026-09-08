@@ -1,6 +1,3 @@
-"""Agent execution coordinator managing iterative tool-calling loops."""
-
-import json
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -41,17 +38,9 @@ class AgentExecutor:
     def _tool_call_signature(
         self,
         call: ToolCall,
-    ) -> str:
-        """Return a stable signature for a tool call."""
-        return json.dumps(
-            {
-                "name": call.name,
-                "arguments": call.arguments,
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        )
+    ) -> tuple:
+        """Return a stable hashable signature for a tool call used for dedup detection."""
+        return (call.name, tuple(sorted(call.arguments.items())))
 
     async def execute(
         self,

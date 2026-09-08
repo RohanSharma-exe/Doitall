@@ -16,14 +16,14 @@ from doitall.config.logging import configure_logging
 from doitall.config.settings import settings
 from doitall.database.session import engine, init_db
 from doitall.database.session_repository import SessionRepository
-from doitall.embeddings.manager import EmbeddingManager
+from doitall.embeddings.litellm_service import LiteLLMEmbeddingService
 from doitall.knowledge.ingestion import KnowledgeIngestionService
 from doitall.knowledge.simple_chunker import SimpleChunker
 from doitall.knowledge.vector_repository import VectorKnowledgeRepository
 from doitall.memory.constants import get_vector_size_for_model
 from doitall.memory.qdrant_repository import QdrantRepository
 from doitall.memory.qdrant_store import QdrantStore
-from doitall.memory.vector_memory_store import VectorMemoryStore
+
 from doitall.providers.manager import ProviderManager
 from doitall.services.registry import container
 from doitall.skills.builtin import register_builtin_skills
@@ -79,8 +79,8 @@ def bootstrap() -> None:
 
         provider_manager = ProviderManager()
 
-        embedding_manager = EmbeddingManager.from_model(
-            settings.EMBEDDING_MODEL,
+        embedding_service = LiteLLMEmbeddingService(
+            model=settings.EMBEDDING_MODEL,
         )
 
         # Build async Qdrant client — all I/O goes through the event loop.
@@ -107,16 +107,13 @@ def bootstrap() -> None:
 
         qdrant_repository = QdrantRepository(
             vector_store=qdrant_store,
-            embedding_manager=embedding_manager,
+            embedding_manager=embedding_service,
         )
 
-        memory_store = VectorMemoryStore(
-            repository=qdrant_repository,
-        )
 
         knowledge_repository = VectorKnowledgeRepository(
             chunker=SimpleChunker(),
-            embedding_manager=embedding_manager,
+            embedding_manager=embedding_service,
             vector_store=knowledge_qdrant_store,
         )
 
@@ -151,12 +148,12 @@ def bootstrap() -> None:
         container.register("settings", settings)
         container.register("engine", engine)
         container.register("provider_manager", provider_manager)
-        container.register("embedding_manager", embedding_manager)
+        container.register("embedding_service", embedding_service)
         container.register("qdrant_client", qdrant_client)
         container.register("qdrant_store", qdrant_store)
         container.register("knowledge_qdrant_store", knowledge_qdrant_store)
         container.register("qdrant_repository", qdrant_repository)
-        container.register("memory_store", memory_store)
+        container.register("memory_store", qdrant_repository)
         container.register("knowledge_repository", knowledge_repository)
         container.register("knowledge_ingestion", knowledge_ingestion)
         container.register("skill_registry", skill_registry)
